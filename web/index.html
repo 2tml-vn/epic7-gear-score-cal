@@ -138,7 +138,8 @@
               <p class="hint"><strong>BASE</strong> sets the substat value at the current gear state (or type any value). Enhancement rolls are added in the box above; they only land on substats that have a base value, and changing a roll never changes the base. The row shows <code>base → total</code>. Flat ATK / HP / DEF, main stats, and set bonuses are ignored.</p>
             </div>
 
-            <aside class="score-panel">
+            <div class="side-column">
+              <aside class="score-panel">
               <div class="score-card">
                 <div class="score-eyebrow">GEAR SCORE</div>
                 <div class="score-value" id="score-big">0.00</div>
@@ -164,36 +165,30 @@
                 </div>
                 <p class="score-note">Score is calculated only from the substats you enter above.</p>
               </div>
-            </aside>
-          </div>
+              </aside>
 
-          <section class="reach-panel sheet-panel">
-            <div class="panel-heading">
-              <div>
-                <h2>Benchmark reachability</h2>
-                <p>Checks each enhancement stage using the best possible remaining rolls.</p>
-              </div>
-              <div class="legend" aria-hidden="true">
-                <span class="legend-item"><i class="legend-dot good"></i>Can reach</span>
-                <span class="legend-item"><i class="legend-dot bad"></i>Cannot reach</span>
-              </div>
+              <section class="reach-panel sheet-panel">
+                <div class="panel-heading compact">
+                  <h2>Benchmark reachability</h2>
+                </div>
+                <div class="table-wrap">
+                  <table class="reach-table" id="reach-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Stage</th>
+                        <th scope="col">Rolls</th>
+                        <th scope="col">Bench</th>
+                        <th scope="col">Best case</th>
+                        <th scope="col">Result</th>
+                      </tr>
+                    </thead>
+                    <tbody id="reach-rows"></tbody>
+                  </table>
+                </div>
+                <p class="hint" id="reach-note">Best-case = current score + max points for each remaining roll.</p>
+              </section>
             </div>
-            <div class="table-wrap">
-              <table class="reach-table" id="reach-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Stage</th>
-                    <th scope="col">Rolls</th>
-                    <th scope="col">Benchmark</th>
-                    <th scope="col">Best-case score</th>
-                    <th scope="col">Result</th>
-                  </tr>
-                </thead>
-                <tbody id="reach-rows"></tbody>
-              </table>
-            </div>
-            <p class="hint" id="reach-note">Best-case assumes every remaining upgrade rolls the maximum points for this gear level.</p>
-          </section>
+          </div>
         </section>
 
         <section id="view-benchmarks" class="sheet-view" aria-label="Benchmarks" hidden>
