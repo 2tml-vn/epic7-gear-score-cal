@@ -55,6 +55,15 @@
     reachRows: document.getElementById("reach-rows"),
     reachNote: document.getElementById("reach-note"),
     benchGrid: document.getElementById("bench-grid"),
+    rollTarget: document.getElementById("roll-target"),
+    rollValue: document.getElementById("roll-value"),
+    addRoll: document.getElementById("add-roll"),
+    tallyCount: document.getElementById("tally-count"),
+    tallyStage: document.getElementById("tally-stage"),
+    tallyRolls: document.getElementById("tally-rolls"),
+    tallyScore: document.getElementById("tally-score"),
+    rollLog: document.getElementById("roll-log"),
+    rollHint: document.getElementById("roll-hint"),
   };
 
   let saveTimer = null;
@@ -62,6 +71,8 @@
   let hydrated = false;
   let lastProfileKey = "";
   const chipSignatures = {};
+  let targetSignature = "";
+  let valueSignature = "";
 
   function currentProfile() {
     return getProfile(state.level, state.rarity);
@@ -90,8 +101,6 @@
         '<span class="base-tag">BASE</span>' +
         '<select class="roll-select base-roll" data-role="base-roll" data-key="' + stat.key +
         '" aria-label="Base value for ' + stat.label + '"></select>' +
-        '<button class="add-plus3" type="button" data-role="add-plus3" data-key="' + stat.key +
-        '" title="Roll an enhancement into ' + stat.label + '">+3</button>' +
         "</div>" +
         '<div class="plus3-list" data-role="plus3-list" data-key="' + stat.key + '"></div>' +
         "</td>" +
@@ -151,16 +160,97 @@
     }
   }
 
-  // An enhancement roll is independent of the base value: it always starts at
-  // the low end of the stat's roll range, never at the base value.
-  function defaultRollValue(key) {
-    const options = rollOptions(currentProfile(), key);
-    return options.length ? String(options[0]) : "";
+  // Only substats that already have a base value can receive enhancement rolls.
+  function baseSubstats() {
+    return STATS.filter(function (stat) {
+      return parseValue(state.stats[stat.key]) > 0;
+    });
   }
 
-  function addPlusThree(key) {
-    if (effectiveStage(state.stage, countPlusThree(state.plusThree)) >= 15) return;
-    state.plusThree[key].push(defaultRollValue(key));
+  function addEnhancementRoll(key, value) {
+    if (!key || effectiveStage(state.stage, countPlusThree(state.plusThree)) >= 15) return;
+    const options = rollOptions(currentProfile(), key);
+    const valid = options.some(function (v) {
+      return String(v) === String(value);
+    });
+    if (valid) state.plusThree[key].push(String(value));
+  }
+
+  function syncAddRollControls(profile, displayStage, score) {
+    const keys = baseSubstats().map(function (stat) {
+      return stat.key;
+    });
+    const targetSig = profile.key + "|" + keys.join(",");
+    if (targetSig !== targetSignature) {
+      targetSignature = targetSig;
+      els.rollTarget.innerHTML = keys
+        .map(function (key) {
+          const stat = STATS.find(function (s) {
+            return s.key === key;
+          });
+          return '<option value="' + key + '">' + stat.label + stat.suffix + "</option>";
+        })
+        .join("");
+    }
+    const targetKey = els.rollTarget.value || keys[0] || "";
+    const targetExists = Array.prototype.some.call(els.rollTarget.options, function (option) {
+      return option.value === targetKey;
+    });
+    els.rollTarget.value = targetExists ? targetKey : "";
+
+    const valueSig = profile.key + "|" + targetKey;
+    if (valueSig !== valueSignature) {
+      valueSignature = valueSig;
+      const options = rollOptions(profile, targetKey);
+      els.rollValue.innerHTML = options
+        .map(function (value) {
+          return '<option value="' + value + '">' + value + "</option>";
+        })
+        .join("");
+      els.rollValue.value = options.length ? String(options[0]) : "";
+    }
+
+    const full = displayStage >= 15;
+    els.addRoll.disabled = full || !targetKey || !els.rollValue.value;
+    els.addRoll.title = full ? "Gear is already at +15" : "";
+    els.tallyCount.textContent = String(countPlusThree(state.plusThree));
+    els.tallyStage.textContent = formatStage(displayStage);
+    els.tallyRolls.textContent = rollsAt(profile, displayStage) + " / " + totalRolls(profile);
+    els.tallyScore.textContent = fmt(score.total);
+    els.rollHint.textContent = keys.length === 0
+      ? "Enter the gear's base substat values in the grid below first."
+      : full
+      ? "This gear is at +15; no further enhancement rolls remain."
+      : "Pick a base substat and a roll value, then add the roll. The base value stays unchanged.";
+  }
+
+  function renderRollLog() {
+    const entries = [];
+    STATS.forEach(function (stat) {
+      state.plusThree[stat.key].forEach(function (value, index) {
+        entries.push({
+          key: stat.key,
+          index: index,
+          label: stat.label + stat.suffix,
+          value: value,
+        });
+      });
+    });
+    els.rollLog.innerHTML = entries.length
+      ? entries
+          .map(function (entry) {
+            return (
+              '<span class="log-entry">' +
+              '<span class="log-stat">' + entry.label + "</span>" +
+              '<span class="log-value">+' + fmt(parseValue(entry.value)) + "</span>" +
+              '<button class="log-remove" type="button" data-role="remove-log-roll" data-key="' + entry.key +
+              '" data-index="' + entry.index + '" aria-label="Remove ' + entry.label + " roll " + (entry.index + 1) +
+              '" title="Remove this roll">×</button>' +
+              "</span>"
+            );
+          })
+          .join("")
+      : '<span class="log-empty">No enhancement rolls added yet.</span>';
   }
 
   function renderChips(profile) {
@@ -375,19 +465,12 @@
       const rolls = state.plusThree[row.key];
       const options = rollOptions(profile, row.key);
       const baseSelect = tr.querySelector('[data-role="base-roll"]');
-      const addButton = tr.querySelector('[data-role="add-plus3"]');
       const projection = tr.querySelector(".value-projection");
 
       if (baseSelect) {
         baseSelect.value = options.some((v) => String(v) === String(state.stats[row.key]))
           ? state.stats[row.key]
           : "";
-      }
-      if (addButton) {
-        addButton.disabled = displayStage >= 15;
-        addButton.title = addButton.disabled
-          ? "Gear is already at +15"
-          : "Roll an enhancement into " + row.label;
       }
       tr.classList.toggle("has-plus3", rolls.length > 0);
       if (projection) {
@@ -414,6 +497,8 @@
     els.scoreMaxroll.textContent = String(profile.maxRollPoints);
     els.scoreTarget.textContent = fmt(profile.perRoll);
 
+    syncAddRollControls(profile, displayStage, score);
+    renderRollLog();
     renderReach(buildReachability(profile, displayStage, score.total, hasStats), profile, displayStage);
     renderBenchmarks(profile, displayStage);
   }
@@ -620,13 +705,6 @@
   });
 
   els.statRows.addEventListener("click", function (event) {
-    const add = event.target.closest('button[data-role="add-plus3"]');
-    if (add) {
-      addPlusThree(add.dataset.key);
-      render();
-      scheduleSave();
-      return;
-    }
     const remove = event.target.closest('button[data-role="remove-plus3"]');
     if (remove) {
       const rolls = state.plusThree[remove.dataset.key];
@@ -636,6 +714,29 @@
         render();
         scheduleSave();
       }
+    }
+  });
+
+  els.rollTarget.addEventListener("change", function () {
+    valueSignature = "";
+    render();
+  });
+
+  els.addRoll.addEventListener("click", function () {
+    addEnhancementRoll(els.rollTarget.value, els.rollValue.value);
+    render();
+    scheduleSave();
+  });
+
+  els.rollLog.addEventListener("click", function (event) {
+    const remove = event.target.closest('button[data-role="remove-log-roll"]');
+    if (!remove) return;
+    const rolls = state.plusThree[remove.dataset.key];
+    const index = Number(remove.dataset.index);
+    if (rolls && index >= 0 && index < rolls.length) {
+      rolls.splice(index, 1);
+      render();
+      scheduleSave();
     }
   });
 

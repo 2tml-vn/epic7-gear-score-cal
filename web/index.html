@@ -66,6 +66,34 @@
             </div>
           </div>
 
+          <div class="add-roll-panel sheet-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Add enhancement roll</h2>
+                <p>Rolls can only land on substats that already have a base roll on this gear.</p>
+              </div>
+            </div>
+            <div class="add-roll-controls">
+              <label class="add-roll-field">
+                <span>Substat</span>
+                <select id="roll-target" aria-label="Substat receiving the enhancement roll"></select>
+              </label>
+              <label class="add-roll-field">
+                <span>Roll value</span>
+                <select id="roll-value" aria-label="Value of the enhancement roll"></select>
+              </label>
+              <button id="add-roll" class="button primary" type="button">Add roll</button>
+            </div>
+            <div class="roll-tally">
+              <span>Rolls added <strong id="tally-count">0</strong></span>
+              <span>Enhancement <strong id="tally-stage">+0</strong></span>
+              <span>Total rolls <strong id="tally-rolls">4 / 9</strong></span>
+              <span>Score <strong id="tally-score">0.00</strong></span>
+            </div>
+            <div id="roll-log" class="roll-log"></div>
+            <p id="roll-hint" class="hint"></p>
+          </div>
+
           <div class="calculator-layout">
             <div class="sheet-panel stat-panel">
               <div class="sheet-frame">
@@ -91,7 +119,7 @@
                       <th class="gutter">1</th>
                       <th scope="col">Substat</th>
                       <th scope="col">Value</th>
-                      <th scope="col">Roll / +3</th>
+                      <th scope="col">Base / Rolls</th>
                       <th scope="col">Weight</th>
                       <th scope="col">Points</th>
                     </tr>
@@ -107,7 +135,7 @@
                   </tfoot>
                 </table>
               </div>
-              <p class="hint"><strong>BASE</strong> sets the substat value at the current gear state (or type any value). Each <strong>+3</strong> adds one enhancement roll to that substat, with its own <em>roll value</em> picker — changing a roll never changes the base. The row shows <code>base → total</code>, and each roll advances the enhancement level by +3 and the roll count by one. Flat ATK / HP / DEF, main stats, and set bonuses are ignored.</p>
+              <p class="hint"><strong>BASE</strong> sets the substat value at the current gear state (or type any value). Enhancement rolls are added in the box above; they only land on substats that have a base value, and changing a roll never changes the base. The row shows <code>base → total</code>. Flat ATK / HP / DEF, main stats, and set bonuses are ignored.</p>
             </div>
 
             <aside class="score-panel">

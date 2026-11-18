@@ -610,28 +610,136 @@ html[data-theme="light"] .icon-sun {
   letter-spacing: 0.04em;
 }
 
-.add-plus3 {
-  flex: 0 0 auto;
-  height: 26px;
-  padding: 0 7px;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: var(--panel-3);
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
+.add-roll-panel {
+  margin-bottom: 14px;
+  padding: 16px 18px;
 }
 
-.add-plus3:hover:not(:disabled) {
+.add-roll-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.add-roll-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 150px;
+}
+
+.add-roll-field > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.add-roll-field select {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  outline: 0;
+}
+
+.add-roll-field select:focus {
   border-color: var(--accent);
+}
+
+.button.primary {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.button.primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.roll-tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.roll-tally span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.roll-tally strong {
+  margin-left: 4px;
+  color: var(--accent-2);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.roll-log {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.log-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 5px 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-2);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.log-stat {
   color: var(--text);
 }
 
-.add-plus3:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.log-value {
+  color: var(--good);
+  font-weight: 700;
+}
+
+.log-remove {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--faint);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.log-remove:hover {
+  color: var(--bad);
+}
+
+.log-empty,
+#roll-hint {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.roll-log + .hint {
+  margin-top: 10px;
 }
 
 .plus3-list {
