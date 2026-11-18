@@ -10,7 +10,7 @@ A portable, offline Windows app that calculates Epic Seven gear scores and check
 - Enhancement: `+0`, `+3`, `+6`, `+9`, `+12`, `+15`
 - Substats: ATK%, HP%, DEF%, SPD, Crit Chance%, Crit Damage%, Effectiveness%, Effect Resist%
 - Each substat has a dropdown of valid single-roll values for the gear level (e.g. 4–8% for Lv 85 ATK%). Typing a value directly is still allowed.
-- Each substat has a **+3** button: each click adds one enhancement roll to that substat, with its own value chosen from the roll range. A substat can receive multiple rolls; the row displays `base → total` and the score updates immediately.
+- Each substat has a **+3** button: each click adds one enhancement roll to that substat, with its own **roll value** picker (labeled `Roll 1`, `Roll 2`, …) chosen from the roll range. This picker is separate from the **BASE** picker — changing a roll value never changes the base value. A substat can receive multiple rolls; the row displays `base → total` and the score updates immediately.
 - Each added roll advances the displayed enhancement level by `+3` and the roll count by one (capped at `+15`). Changing the Enhance buttons rebalances the added rolls to match the selected stage.
 
 Flat ATK / HP / DEF, main stats, and set bonuses are ignored entirely.

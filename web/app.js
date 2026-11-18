@@ -87,8 +87,9 @@
         '<span class="value-projection" hidden></span>' +
         "</div></td>" +
         '<td class="roll-cell"><div class="roll-controls">' +
+        '<span class="base-tag">BASE</span>' +
         '<select class="roll-select base-roll" data-role="base-roll" data-key="' + stat.key +
-        '" aria-label="Base roll for ' + stat.label + '"></select>' +
+        '" aria-label="Base value for ' + stat.label + '"></select>' +
         '<button class="add-plus3" type="button" data-role="add-plus3" data-key="' + stat.key +
         '" title="Roll an enhancement into ' + stat.label + '">+3</button>' +
         "</div>" +
@@ -118,7 +119,7 @@
       const options = rollOptions(profile, stat.key);
       const base = tr.querySelector('[data-role="base-roll"]');
       if (base) {
-        base.innerHTML = selectMarkup(options, "roll");
+        base.innerHTML = selectMarkup(options, "base");
         base.value = "";
       }
     });
@@ -127,15 +128,11 @@
   function reconcilePlusThree(profile) {
     STATS.forEach(function (stat) {
       const options = rollOptions(profile, stat.key);
-      const base = parseValue(state.stats[stat.key]);
-      const matchesBase = options.some(function (v) {
-        return v === base;
-      });
       state.plusThree[stat.key] = state.plusThree[stat.key].map(function (value) {
         const valid = options.some(function (v) {
           return String(v) === String(value);
         });
-        return valid ? String(value) : String(matchesBase ? base : options[0]);
+        return valid ? String(value) : String(options[0]);
       });
     });
   }
@@ -154,13 +151,11 @@
     }
   }
 
+  // An enhancement roll is independent of the base value: it always starts at
+  // the low end of the stat's roll range, never at the base value.
   function defaultRollValue(key) {
     const options = rollOptions(currentProfile(), key);
-    const base = parseValue(state.stats[key]);
-    const matchesBase = options.some(function (v) {
-      return v === base;
-    });
-    return String(matchesBase ? base : options[0]);
+    return options.length ? String(options[0]) : "";
   }
 
   function addPlusThree(key) {
@@ -184,9 +179,10 @@
           return (
             '<div class="plus3-chip">' +
             '<span class="chip-tag">+3</span>' +
+            '<span class="chip-index">' + (index + 1) + "</span>" +
             '<select class="roll-select chip-roll" data-role="chip-roll" data-key="' + stat.key +
-            '" data-index="' + index + '" aria-label="Enhancement roll ' + (index + 1) + " for " + stat.label + '">' +
-            selectMarkup(options, "roll") +
+            '" data-index="' + index + '" aria-label="Enhancement roll ' + (index + 1) + " value for " + stat.label + '">' +
+            selectMarkup(options, "roll value") +
             "</select>" +
             '<button class="chip-remove" type="button" data-role="remove-plus3" data-key="' + stat.key +
             '" data-index="' + index + '" aria-label="Remove enhancement roll ' + (index + 1) + " for " + stat.label +
@@ -397,6 +393,15 @@
       if (projection) {
         projection.hidden = rolls.length === 0;
         projection.textContent = rolls.length ? "→ " + fmt(effective[row.key]) : "";
+        projection.title = rolls.length
+          ? fmt(parseValue(state.stats[row.key])) +
+            " + " +
+            rolls.map(function (value) {
+              return fmt(parseValue(value));
+            }).join(" + ") +
+            " = " +
+            fmt(effective[row.key])
+          : "";
       }
     });
 
@@ -600,6 +605,8 @@
       scheduleSave();
       return;
     }
+    // A roll picker only edits that roll. It must never touch state.stats,
+    // which holds the base value set by the BASE picker / number input.
     const chip = event.target.closest('select[data-role="chip-roll"]');
     if (chip) {
       const rolls = state.plusThree[chip.dataset.key];
