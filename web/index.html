@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>E7 Gear Sheet</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">E7</div>
+          <div class="brand-text">
+            <h1>GEAR SHEET</h1>
+            <p>Epic Seven substat score calculator</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span id="save-status" class="save-status" aria-live="polite">Ready</span>
+          <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to light theme" title="Switch theme">
+            <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5 8.6 8.6 0 1 0 20.5 14.2Z"/></svg>
+            <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+          </button>
+          <button id="clear-stats" class="button ghost" type="button" title="Clear all substat values">Clear</button>
+        </div>
+      </header>
+
+      <div class="formula-bar">
+        <span class="fx">fx</span>
+        <code id="formula-text">= ATK% + HP% + DEF% + EFF% + ER% + SPD × 2 + CC% × 1.6 + CD% × 8/7</code>
+        <span id="profile-chip" class="profile-chip">Lv 85 Epic</span>
+      </div>
+
+      <main class="sheet-area">
+        <section id="view-calculator" class="sheet-view is-active" aria-label="Calculator">
+          <div class="setup-bar sheet-panel">
+            <div class="setup-group">
+              <span class="setup-label">Level</span>
+              <div class="segmented" id="level-control" role="group" aria-label="Gear level">
+                <button type="button" data-level="85" class="is-active" aria-pressed="true">85</button>
+                <button type="button" data-level="88" aria-pressed="false">88</button>
+              </div>
+            </div>
+            <div class="setup-group">
+              <span class="setup-label">Rarity</span>
+              <div class="segmented" id="rarity-control" role="group" aria-label="Gear rarity">
+                <button type="button" data-rarity="Epic" class="is-active" aria-pressed="true">Epic</button>
+                <button type="button" data-rarity="Heroic" aria-pressed="false">Heroic</button>
+              </div>
+            </div>
+            <div class="setup-group">
+              <span class="setup-label">Enhance</span>
+              <div class="segmented" id="enhance-control" role="group" aria-label="Enhancement level">
+                <button type="button" data-stage="0" class="is-active" aria-pressed="true">+0</button>
+                <button type="button" data-stage="3" aria-pressed="false">+3</button>
+                <button type="button" data-stage="6" aria-pressed="false">+6</button>
+                <button type="button" data-stage="9" aria-pressed="false">+9</button>
+                <button type="button" data-stage="12" aria-pressed="false">+12</button>
+                <button type="button" data-stage="15" aria-pressed="false">+15</button>
+              </div>
+            </div>
+            <div class="roll-summary" aria-live="polite">
+              <span id="roll-count" class="roll-count">4 / 9</span>
+              <span class="roll-label">rolls</span>
+            </div>
+          </div>
+
+          <div class="calculator-layout">
+            <div class="sheet-panel stat-panel">
+              <div class="sheet-frame">
+                <table class="stat-grid" id="stat-grid">
+                  <colgroup>
+                    <col class="col-gutter" />
+                    <col class="col-stat" />
+                    <col class="col-value" />
+                    <col class="col-weight" />
+                    <col class="col-points" />
+                  </colgroup>
+                  <thead>
+                    <tr class="col-letter-row">
+                      <th class="gutter" aria-hidden="true"></th>
+                      <th>A</th>
+                      <th>B</th>
+                      <th>C</th>
+                      <th>D</th>
+                    </tr>
+                    <tr class="field-row">
+                      <th class="gutter">1</th>
+                      <th scope="col">Substat</th>
+                      <th scope="col">Value</th>
+                      <th scope="col">Weight</th>
+                      <th scope="col">Points</th>
+                    </tr>
+                  </thead>
+                  <tbody id="stat-rows"></tbody>
+                  <tfoot>
+                    <tr>
+                      <th class="gutter">10</th>
+                      <td colspan="2" class="total-label">TOTAL GEAR SCORE</td>
+                      <td class="total-mark">=SUM</td>
+                      <td class="total-value"><span id="total-score">0.00</span></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <p class="hint">Flat ATK / HP / DEF are ignored. Main stats and set bonuses are not scored.</p>
+            </div>
+
+            <aside class="score-panel">
+              <div class="score-card">
+                <div class="score-eyebrow">GEAR SCORE</div>
+                <div class="score-value" id="score-big">0.00</div>
+                <div class="score-meta">
+                  <span id="score-profile">Lv 85 Epic</span>
+                  <span class="dot">•</span>
+                  <span id="score-stage">+0</span>
+                  <span class="dot">•</span>
+                  <span id="score-rolls">4 rolls</span>
+                </div>
+                <div class="score-divider"></div>
+                <div class="score-fact">
+                  <span>Scoring system</span>
+                  <strong id="score-system">8-point</strong>
+                </div>
+                <div class="score-fact">
+                  <span>Max points / roll</span>
+                  <strong id="score-maxroll">8</strong>
+                </div>
+                <div class="score-fact">
+                  <span>Target / roll</span>
+                  <strong id="score-target">6.08</strong>
+                </div>
+                <p class="score-note">Score is calculated only from the substats you enter above.</p>
+              </div>
+            </aside>
+          </div>
+
+          <section class="reach-panel sheet-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Benchmark reachability</h2>
+                <p>Checks each enhancement stage using the best possible remaining rolls.</p>
+              </div>
+              <div class="legend" aria-hidden="true">
+                <span class="legend-item"><i class="legend-dot good"></i>Can reach</span>
+                <span class="legend-item"><i class="legend-dot bad"></i>Cannot reach</span>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="reach-table" id="reach-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Stage</th>
+                    <th scope="col">Rolls</th>
+                    <th scope="col">Benchmark</th>
+                    <th scope="col">Best-case score</th>
+                    <th scope="col">Result</th>
+                  </tr>
+                </thead>
+                <tbody id="reach-rows"></tbody>
+              </table>
+            </div>
+            <p class="hint" id="reach-note">Best-case assumes every remaining upgrade rolls the maximum points for this gear level.</p>
+          </section>
+        </section>
+
+        <section id="view-benchmarks" class="sheet-view" aria-label="Benchmarks" hidden>
+          <div class="view-heading">
+            <h2>Progression benchmarks</h2>
+            <p>Cumulative score targets: rolls at stage × target per roll. Reference only.</p>
+          </div>
+          <div class="bench-grid" id="bench-grid"></div>
+        </section>
+
+        <section id="view-reference" class="sheet-view" aria-label="Reference" hidden>
+          <div class="view-heading">
+            <h2>Reference</h2>
+            <p>Weights, roll ranges, and the formulas used by this sheet.</p>
+          </div>
+
+          <div class="reference-grid">
+            <article class="sheet-panel reference-card">
+              <h3>Scoring weights</h3>
+              <div class="table-wrap">
+                <table class="ref-table">
+                  <thead>
+                    <tr><th>Stat</th><th>Lv 85</th><th>Lv 88</th><th>Max roll · 85</th><th>Max roll · 88</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>ATK% / HP% / DEF% / EFF% / ER%</td><td>1.000</td><td>1.111</td><td>8.00</td><td>10.00</td></tr>
+                    <tr><td>SPD</td><td>2.000</td><td>2.000</td><td>8.00</td><td>10.00</td></tr>
+                    <tr><td>Crit Chance %</td><td>1.600</td><td>1.667</td><td>8.00</td><td>10.00</td></tr>
+                    <tr><td>Crit Damage %</td><td>1.143 <span class="muted">(8/7)</span></td><td>1.250 <span class="muted">(10/8)</span></td><td>8.00</td><td>10.00</td></tr>
+                    <tr><td>Flat ATK / HP / DEF</td><td colspan="4" class="muted">Ignored entirely — 0 points</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="sheet-panel reference-card">
+              <h3>Substat roll ranges</h3>
+              <div class="table-wrap">
+                <table class="ref-table">
+                  <thead>
+                    <tr><th>Stat</th><th>Lv 85</th><th>Lv 88</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Standard % stats</td><td>4% – 8%</td><td>5% – 9%</td></tr>
+                    <tr><td>Crit Chance</td><td>3% – 5%</td><td>3% – 6%</td></tr>
+                    <tr><td>Crit Damage</td><td>4% – 7%</td><td>4% – 8%</td></tr>
+                    <tr><td>Speed</td><td>2 – 4</td><td>3 – 5</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="sheet-panel reference-card">
+              <h3>Score formulas</h3>
+              <div class="formula-block">
+                <span class="formula-tag">Lv 85 · Epic &amp; Heroic</span>
+                <code>ATK% + HP% + DEF% + EFF% + ER% + SPD×2 + CC%×1.6 + CD%×(8/7)</code>
+              </div>
+              <div class="formula-block">
+                <span class="formula-tag">Lv 88 · Epic</span>
+                <code>(ATK% + HP% + DEF% + EFF% + ER%)×10/9 + SPD×2 + CC%×10/6 + CD%×10/8</code>
+              </div>
+              <p class="hint">Level 85 uses the 8-point system; Level 88 uses the 10-point system. Rarity changes the target, not the formula.</p>
+            </article>
+
+            <article class="sheet-panel reference-card">
+              <h3>How the numbers are built</h3>
+              <ul class="notes-list">
+                <li><strong>Rolls</strong> = base rolls + enhancement ÷ 3. Epic starts with 4 rolls, Heroic with 3.</li>
+                <li><strong>Benchmark</strong> = rolls × target per roll (6.08 / 7.04 / 8.04).</li>
+                <li><strong>Max roll value</strong> = 8 points on Lv 85, 10 points on Lv 88 — every non-flat stat.</li>
+                <li><strong>Reachability</strong> = current score + remaining rolls × max roll value ≥ benchmark.</li>
+                <li>The Lv 85 average: <code>(5×6.00 + 6.00 + 6.29 + 6.40) ÷ 8 = 6.0857 ≈ 6.08</code>.</li>
+                <li>The Lv 88 target of 8.04 is the calibrated 10-point-system average per roll.</li>
+                <li>Main stats, set bonuses, and flat stats are not part of the score.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="sheet-tabs" role="tablist" aria-label="Sheets">
+        <button class="sheet-tab is-active" type="button" data-view="calculator" role="tab" aria-selected="true">Calculator</button>
+        <button class="sheet-tab" type="button" data-view="benchmarks" role="tab" aria-selected="false">Benchmarks</button>
+        <button class="sheet-tab" type="button" data-view="reference" role="tab" aria-selected="false">Reference</button>
+        <span class="tab-spacer"></span>
+        <span class="status-note">E7 Gear Sheet · offline</span>
+      </footer>
+    </div>
+
+    <script src="calc.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
