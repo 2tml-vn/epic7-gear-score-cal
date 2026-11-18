@@ -9,6 +9,8 @@ A portable, offline Windows app that calculates Epic Seven gear scores and check
 - Rarity: Epic or Heroic (Lv 88 is Epic only)
 - Enhancement: `+0`, `+3`, `+6`, `+9`, `+12`, `+15`
 - Substats: ATK%, HP%, DEF%, SPD, Crit Chance%, Crit Damage%, Effectiveness%, Effect Resist%
+- Each substat has a dropdown of valid single-roll values for the gear level (e.g. 4–8% for Lv 85 ATK%). Typing a value directly is still allowed.
+- Each substat has a **+3** toggle: enable it and pick the extra roll that the next `+3` enhancement adds. The row displays `base → upgraded` and the score uses the upgraded value immediately.
 
 Flat ATK / HP / DEF, main stats, and set bonuses are ignored entirely.
 

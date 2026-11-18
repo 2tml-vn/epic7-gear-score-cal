@@ -9,6 +9,9 @@
     rollsAt,
     totalRolls,
     computeScore,
+    rollOptions,
+    effectiveStats,
+    parseValue,
     buildBenchmarkTable,
     buildReachability,
     fmt,
@@ -23,6 +26,7 @@
     rarity: "Epic",
     stage: 0,
     stats: Object.fromEntries(STATS.map((stat) => [stat.key, ""])),
+    plusThree: Object.fromEntries(STATS.map((stat) => [stat.key, { active: false, roll: "" }])),
     theme: "dark",
     view: "calculator",
   };
@@ -54,6 +58,7 @@
   let saveTimer = null;
   let statusTimer = null;
   let hydrated = false;
+  let lastProfileKey = "";
 
   function currentProfile() {
     return getProfile(state.level, state.rarity);
@@ -72,12 +77,69 @@
         '<span class="stat-name">' + stat.label + "</span>" +
         '<span class="stat-suffix">' + stat.suffix + "</span>" +
         "</div></td>" +
-        '<td class="value-cell"><input type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" id="stat-' +
+        '<td class="value-cell"><div class="value-wrap">' +
+        '<input type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" id="stat-' +
         stat.key +
-        '" data-key="' + stat.key + '" aria-label="' + stat.label + stat.suffix + '"></td>' +
+        '" data-key="' + stat.key + '" aria-label="' + stat.label + stat.suffix + '">' +
+        '<span class="value-projection" hidden></span>' +
+        "</div></td>" +
+        '<td class="roll-cell"><div class="roll-controls">' +
+        '<select class="roll-select base-roll" data-role="base-roll" data-key="' + stat.key +
+        '" aria-label="Base roll for ' + stat.label + '"></select>' +
+        '<button class="plus3-toggle" type="button" data-role="plus3" data-key="' + stat.key +
+        '" aria-pressed="false" title="Add the next +3 roll to ' + stat.label + '">+3</button>' +
+        '<select class="roll-select plus3-roll" data-role="plus3-roll" data-key="' + stat.key +
+        '" aria-label="Added roll for ' + stat.label + '" hidden></select>' +
+        "</div></td>" +
         '<td class="weight-cell">×0.000</td>' +
         '<td class="points-cell is-zero">0.00</td>';
       els.statRows.appendChild(tr);
+    });
+  }
+
+  function selectMarkup(options, placeholder) {
+    return (
+      '<option value="">' + placeholder + "</option>" +
+      options
+        .map(function (value) {
+          return '<option value="' + value + '">' + value + "</option>";
+        })
+        .join("")
+    );
+  }
+
+  function syncRollOptions(profile) {
+    STATS.forEach(function (stat) {
+      const tr = els.statRows.querySelector('tr[data-stat="' + stat.key + '"]');
+      if (!tr) return;
+      const options = rollOptions(profile, stat.key);
+      const base = tr.querySelector('[data-role="base-roll"]');
+      const added = tr.querySelector('[data-role="plus3-roll"]');
+      if (base) {
+        base.innerHTML = selectMarkup(options, "roll");
+        base.value = "";
+      }
+      if (added) {
+        added.innerHTML = selectMarkup(options, "add");
+        added.value = "";
+      }
+    });
+  }
+
+  function reconcilePlusThree(profile) {
+    STATS.forEach(function (stat) {
+      const pt = state.plusThree[stat.key];
+      if (!pt.active) return;
+      const options = rollOptions(profile, stat.key);
+      const valid = options.some(function (v) {
+        return String(v) === String(pt.roll);
+      });
+      if (valid) return;
+      const base = parseValue(state.stats[stat.key]);
+      const matchesBase = options.some(function (v) {
+        return v === base;
+      });
+      pt.roll = String(matchesBase ? base : options[0]);
     });
   }
 
@@ -216,7 +278,14 @@
     const profile = currentProfile();
     if (!profile) return;
 
-    const score = computeScore(profile, state.stats);
+    if (profile.key !== lastProfileKey) {
+      syncRollOptions(profile);
+      reconcilePlusThree(profile);
+      lastProfileKey = profile.key;
+    }
+
+    const effective = effectiveStats(state.stats, state.plusThree);
+    const score = computeScore(profile, effective);
     const hasStats = score.rows.some((row) => row.value > 0);
     const currentRolls = rollsAt(profile, state.stage);
     const finalRolls = totalRolls(profile);
@@ -246,6 +315,32 @@
       const pointsCell = tr.querySelector(".points-cell");
       pointsCell.textContent = fmt(row.points);
       pointsCell.classList.toggle("is-zero", row.points === 0);
+
+      const pt = state.plusThree[row.key];
+      const options = rollOptions(profile, row.key);
+      const baseSelect = tr.querySelector('[data-role="base-roll"]');
+      const addedSelect = tr.querySelector('[data-role="plus3-roll"]');
+      const toggle = tr.querySelector('[data-role="plus3"]');
+      const projection = tr.querySelector(".value-projection");
+
+      if (baseSelect) {
+        baseSelect.value = options.some((v) => String(v) === String(state.stats[row.key]))
+          ? state.stats[row.key]
+          : "";
+      }
+      if (addedSelect) {
+        addedSelect.value = options.some((v) => String(v) === String(pt.roll)) ? pt.roll : "";
+        addedSelect.hidden = !pt.active;
+      }
+      if (toggle) {
+        toggle.classList.toggle("is-active", pt.active);
+        toggle.setAttribute("aria-pressed", String(pt.active));
+      }
+      tr.classList.toggle("has-plus3", pt.active);
+      if (projection) {
+        projection.hidden = !pt.active;
+        projection.textContent = pt.active ? "→ " + fmt(effective[row.key]) : "";
+      }
     });
 
     els.totalScore.textContent = fmt(score.total);
@@ -285,6 +380,11 @@
       rarity: state.rarity,
       stage: state.stage,
       stats: Object.assign({}, state.stats),
+      plusThree: Object.fromEntries(
+        STATS.map(function (stat) {
+          return [stat.key, Object.assign({}, state.plusThree[stat.key])];
+        })
+      ),
       theme: state.theme,
       view: state.view,
     };
@@ -320,6 +420,17 @@
       STATS.forEach(function (stat) {
         const value = saved.stats[stat.key];
         state.stats[stat.key] = value == null ? "" : String(value);
+      });
+    }
+    if (saved.plusThree && typeof saved.plusThree === "object") {
+      STATS.forEach(function (stat) {
+        const entry = saved.plusThree[stat.key];
+        if (entry && typeof entry === "object") {
+          state.plusThree[stat.key] = {
+            active: Boolean(entry.active),
+            roll: entry.roll == null ? "" : String(entry.roll),
+          };
+        }
       });
     }
     if (saved.theme === "dark" || saved.theme === "light") state.theme = saved.theme;
@@ -408,6 +519,41 @@
     scheduleSave();
   });
 
+  els.statRows.addEventListener("change", function (event) {
+    const base = event.target.closest('select[data-role="base-roll"]');
+    if (base) {
+      state.stats[base.dataset.key] = base.value;
+      syncInputs();
+      render();
+      scheduleSave();
+      return;
+    }
+    const added = event.target.closest('select[data-role="plus3-roll"]');
+    if (added) {
+      state.plusThree[added.dataset.key].roll = added.value;
+      render();
+      scheduleSave();
+    }
+  });
+
+  els.statRows.addEventListener("click", function (event) {
+    const toggle = event.target.closest('button[data-role="plus3"]');
+    if (!toggle) return;
+    const key = toggle.dataset.key;
+    const pt = state.plusThree[key];
+    pt.active = !pt.active;
+    if (pt.active && !pt.roll) {
+      const options = rollOptions(currentProfile(), key);
+      const base = parseValue(state.stats[key]);
+      const matchesBase = options.some(function (v) {
+        return v === base;
+      });
+      pt.roll = String(matchesBase ? base : options[0]);
+    }
+    render();
+    scheduleSave();
+  });
+
   els.statRows.addEventListener("keydown", function (event) {
     if (event.key !== "Enter") return;
     const inputs = Array.from(els.statRows.querySelectorAll("input[data-key]"));
@@ -425,6 +571,7 @@
   els.clearStats.addEventListener("click", function () {
     STATS.forEach(function (stat) {
       state.stats[stat.key] = "";
+      state.plusThree[stat.key] = { active: false, roll: "" };
     });
     syncInputs();
     render();

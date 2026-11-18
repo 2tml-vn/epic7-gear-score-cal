@@ -74,6 +74,7 @@
                     <col class="col-gutter" />
                     <col class="col-stat" />
                     <col class="col-value" />
+                    <col class="col-roll" />
                     <col class="col-weight" />
                     <col class="col-points" />
                   </colgroup>
@@ -84,11 +85,13 @@
                       <th>B</th>
                       <th>C</th>
                       <th>D</th>
+                      <th>E</th>
                     </tr>
                     <tr class="field-row">
                       <th class="gutter">1</th>
                       <th scope="col">Substat</th>
                       <th scope="col">Value</th>
+                      <th scope="col">Roll / +3</th>
                       <th scope="col">Weight</th>
                       <th scope="col">Points</th>
                     </tr>
@@ -97,14 +100,14 @@
                   <tfoot>
                     <tr>
                       <th class="gutter">10</th>
-                      <td colspan="2" class="total-label">TOTAL GEAR SCORE</td>
+                      <td colspan="3" class="total-label">TOTAL GEAR SCORE</td>
                       <td class="total-mark">=SUM</td>
                       <td class="total-value"><span id="total-score">0.00</span></td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
-              <p class="hint">Flat ATK / HP / DEF are ignored. Main stats and set bonuses are not scored.</p>
+              <p class="hint">Pick a base roll from the dropdown (or type any value). Turn on <strong>+3</strong> on a row to add the next enhancement roll to that substat — the row shows <code>base → upgraded</code> and the score uses the upgraded value. Flat ATK / HP / DEF, main stats, and set bonuses are ignored.</p>
             </div>
 
             <aside class="score-panel">

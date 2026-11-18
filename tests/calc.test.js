@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const calc = require("../web/calc.js");
 
-const { getProfile, rollsAt, totalRolls, computeScore, buildBenchmarkTable, buildReachability, round2 } = calc;
+const { getProfile, rollsAt, totalRolls, computeScore, rollOptions, effectiveStats, buildBenchmarkTable, buildReachability, round2 } = calc;
 
 function benchmarks(profile) {
   return buildBenchmarkTable(profile).map((row) => round2(row.benchmark));
@@ -90,4 +90,46 @@ test("empty input produces neutral reachability", () => {
   const rows = buildReachability(p, 0, 0, false);
   assert.equal(rows[0].state, "empty");
   assert.ok(rows.every((row) => row.state === "empty"));
+});
+
+test("roll options follow the gear level and stat kind", () => {
+  const p85 = getProfile(85, "Epic");
+  const p88 = getProfile(88, "Epic");
+  assert.deepEqual(rollOptions(p85, "atk"), [4, 5, 6, 7, 8]);
+  assert.deepEqual(rollOptions(p85, "hp"), [4, 5, 6, 7, 8]);
+  assert.deepEqual(rollOptions(p85, "spd"), [2, 3, 4]);
+  assert.deepEqual(rollOptions(p85, "cc"), [3, 4, 5]);
+  assert.deepEqual(rollOptions(p85, "cd"), [4, 5, 6, 7]);
+  assert.deepEqual(rollOptions(p88, "atk"), [5, 6, 7, 8, 9]);
+  assert.deepEqual(rollOptions(p88, "spd"), [3, 4, 5]);
+  assert.deepEqual(rollOptions(p88, "cc"), [3, 4, 5, 6]);
+  assert.deepEqual(rollOptions(p88, "cd"), [4, 5, 6, 7, 8]);
+  assert.deepEqual(rollOptions(null, "atk"), []);
+  assert.deepEqual(rollOptions(p85, "nope"), []);
+});
+
+test("effective stats add the marked +3 roll only when active", () => {
+  const stats = { atk: "6", hp: 5, def: "", spd: 3, cc: "", cd: 0, eff: "", er: "" };
+  const plusThree = {
+    atk: { active: true, roll: "4" },
+    hp: { active: false, roll: "8" },
+    spd: { active: true, roll: "" },
+  };
+  const eff = effectiveStats(stats, plusThree);
+  assert.equal(eff.atk, 10);
+  assert.equal(eff.hp, 5);
+  assert.equal(eff.spd, 3);
+  assert.equal(eff.def, 0);
+});
+
+test("score uses the upgraded value for a marked +3 roll", () => {
+  const p = getProfile(85, "Epic");
+  const base = { atk: 6, hp: 0, def: 0, spd: 0, cc: 0, cd: 0, eff: 0, er: 0 };
+  const plusThree = {
+    atk: { active: true, roll: 4 },
+    hp: { active: false, roll: "" },
+  };
+  const score = computeScore(p, effectiveStats(base, plusThree));
+  assert.equal(round2(score.total), 10);
+  assert.equal(round2(score.rows[0].points), 10);
 });

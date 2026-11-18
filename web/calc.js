@@ -18,6 +18,22 @@
     { key: "er", label: "EFFECT RESIST", suffix: "%", kind: "pct" },
   ];
 
+  // Single-roll ranges from the in-game reference table, keyed by gear level and stat kind.
+  const ROLL_RANGES = Object.freeze({
+    85: Object.freeze({
+      pct: Object.freeze({ min: 4, max: 8 }),
+      spd: Object.freeze({ min: 2, max: 4 }),
+      cc: Object.freeze({ min: 3, max: 5 }),
+      cd: Object.freeze({ min: 4, max: 7 }),
+    }),
+    88: Object.freeze({
+      pct: Object.freeze({ min: 5, max: 9 }),
+      spd: Object.freeze({ min: 3, max: 5 }),
+      cc: Object.freeze({ min: 3, max: 6 }),
+      cd: Object.freeze({ min: 4, max: 8 }),
+    }),
+  });
+
   const L85_WEIGHTS = Object.freeze({
     atk: 1,
     hp: 1,
@@ -95,6 +111,31 @@
   function parseValue(value) {
     const n = Number(value);
     return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  function rollOptions(profile, statKey) {
+    const stat = STATS.find(function (s) {
+      return s.key === statKey;
+    });
+    if (!stat || !profile) return [];
+    const byKind = ROLL_RANGES[profile.level];
+    const range = byKind && byKind[stat.kind];
+    if (!range) return [];
+    const list = [];
+    for (let value = range.min; value <= range.max; value += 1) list.push(value);
+    return list;
+  }
+
+  // Applies any marked +3 rolls on top of the entered base values.
+  function effectiveStats(stats, plusThree) {
+    const out = {};
+    STATS.forEach(function (stat) {
+      const base = parseValue(stats ? stats[stat.key] : 0);
+      const entry = plusThree ? plusThree[stat.key] : null;
+      const added = entry && entry.active ? parseValue(entry.roll) : 0;
+      out[stat.key] = base + added;
+    });
+    return out;
   }
 
   function computeScore(profile, stats) {
@@ -210,10 +251,13 @@
     STAGES: STAGES,
     STATS: STATS,
     PROFILES: PROFILES,
+    ROLL_RANGES: ROLL_RANGES,
     getProfile: getProfile,
     rollsAt: rollsAt,
     totalRolls: totalRolls,
     parseValue: parseValue,
+    rollOptions: rollOptions,
+    effectiveStats: effectiveStats,
     computeScore: computeScore,
     buildBenchmarkTable: buildBenchmarkTable,
     buildReachability: buildReachability,
