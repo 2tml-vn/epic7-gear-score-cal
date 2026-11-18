@@ -18,15 +18,26 @@
     { key: "er", label: "EFFECT RESIST", suffix: "%", kind: "pct" },
   ];
 
-  // Single-roll ranges from the in-game reference table, keyed by gear level and stat kind.
+  // Single-roll ranges from the in-game reference table, keyed by gear profile and stat kind.
+  // SPD is the one range that differs between Lv 85 Epic and Heroic gear.
+  const L85_COMMON_RANGES = Object.freeze({
+    pct: Object.freeze({ min: 4, max: 8 }),
+    cc: Object.freeze({ min: 3, max: 5 }),
+    cd: Object.freeze({ min: 4, max: 7 }),
+  });
+
   const ROLL_RANGES = Object.freeze({
-    85: Object.freeze({
-      pct: Object.freeze({ min: 4, max: 8 }),
-      spd: Object.freeze({ min: 2, max: 4 }),
-      cc: Object.freeze({ min: 3, max: 5 }),
-      cd: Object.freeze({ min: 4, max: 7 }),
-    }),
-    88: Object.freeze({
+    epic85: Object.freeze(
+      Object.assign({}, L85_COMMON_RANGES, {
+        spd: Object.freeze({ min: 2, max: 5 }), // 5 is rare
+      })
+    ),
+    heroic85: Object.freeze(
+      Object.assign({}, L85_COMMON_RANGES, {
+        spd: Object.freeze({ min: 1, max: 4 }), // 1 is rare
+      })
+    ),
+    epic88: Object.freeze({
       pct: Object.freeze({ min: 5, max: 9 }),
       spd: Object.freeze({ min: 3, max: 5 }),
       cc: Object.freeze({ min: 3, max: 6 }),
@@ -118,7 +129,7 @@
       return s.key === statKey;
     });
     if (!stat || !profile) return [];
-    const byKind = ROLL_RANGES[profile.level];
+    const byKind = ROLL_RANGES[profile.key];
     const range = byKind && byKind[stat.kind];
     if (!range) return [];
     const list = [];

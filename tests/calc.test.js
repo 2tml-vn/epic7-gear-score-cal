@@ -92,20 +92,33 @@ test("empty input produces neutral reachability", () => {
   assert.ok(rows.every((row) => row.state === "empty"));
 });
 
-test("roll options follow the gear level and stat kind", () => {
+test("roll options follow the gear profile and stat kind", () => {
   const p85 = getProfile(85, "Epic");
+  const h85 = getProfile(85, "Heroic");
   const p88 = getProfile(88, "Epic");
   assert.deepEqual(rollOptions(p85, "atk"), [4, 5, 6, 7, 8]);
   assert.deepEqual(rollOptions(p85, "hp"), [4, 5, 6, 7, 8]);
-  assert.deepEqual(rollOptions(p85, "spd"), [2, 3, 4]);
+  assert.deepEqual(rollOptions(p85, "spd"), [2, 3, 4, 5]);
   assert.deepEqual(rollOptions(p85, "cc"), [3, 4, 5]);
   assert.deepEqual(rollOptions(p85, "cd"), [4, 5, 6, 7]);
+  assert.deepEqual(rollOptions(h85, "spd"), [1, 2, 3, 4]);
+  assert.deepEqual(rollOptions(h85, "atk"), [4, 5, 6, 7, 8]);
+  assert.deepEqual(rollOptions(h85, "cc"), [3, 4, 5]);
+  assert.deepEqual(rollOptions(h85, "cd"), [4, 5, 6, 7]);
   assert.deepEqual(rollOptions(p88, "atk"), [5, 6, 7, 8, 9]);
   assert.deepEqual(rollOptions(p88, "spd"), [3, 4, 5]);
   assert.deepEqual(rollOptions(p88, "cc"), [3, 4, 5, 6]);
   assert.deepEqual(rollOptions(p88, "cd"), [4, 5, 6, 7, 8]);
   assert.deepEqual(rollOptions(null, "atk"), []);
   assert.deepEqual(rollOptions(p85, "nope"), []);
+});
+
+test("extended Lv 85 SPD rolls score with the standard SPD weight", () => {
+  const epic = computeScore(getProfile(85, "Epic"), { spd: 5 });
+  assert.equal(round2(epic.total), 10);
+
+  const heroic = computeScore(getProfile(85, "Heroic"), { spd: 1 });
+  assert.equal(round2(heroic.total), 2);
 });
 
 test("effective stats stack every enhancement roll landed on a substat", () => {
