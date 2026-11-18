@@ -11,6 +11,8 @@
     computeScore,
     rollOptions,
     effectiveStats,
+    countPlusThree,
+    effectiveStage,
     parseValue,
     buildBenchmarkTable,
     buildReachability,
@@ -26,7 +28,7 @@
     rarity: "Epic",
     stage: 0,
     stats: Object.fromEntries(STATS.map((stat) => [stat.key, ""])),
-    plusThree: Object.fromEntries(STATS.map((stat) => [stat.key, { active: false, roll: "" }])),
+    plusThree: Object.fromEntries(STATS.map((stat) => [stat.key, []])),
     theme: "dark",
     view: "calculator",
   };
@@ -59,6 +61,7 @@
   let statusTimer = null;
   let hydrated = false;
   let lastProfileKey = "";
+  const chipSignatures = {};
 
   function currentProfile() {
     return getProfile(state.level, state.rarity);
@@ -86,11 +89,11 @@
         '<td class="roll-cell"><div class="roll-controls">' +
         '<select class="roll-select base-roll" data-role="base-roll" data-key="' + stat.key +
         '" aria-label="Base roll for ' + stat.label + '"></select>' +
-        '<button class="plus3-toggle" type="button" data-role="plus3" data-key="' + stat.key +
-        '" aria-pressed="false" title="Add the next +3 roll to ' + stat.label + '">+3</button>' +
-        '<select class="roll-select plus3-roll" data-role="plus3-roll" data-key="' + stat.key +
-        '" aria-label="Added roll for ' + stat.label + '" hidden></select>' +
-        "</div></td>" +
+        '<button class="add-plus3" type="button" data-role="add-plus3" data-key="' + stat.key +
+        '" title="Roll an enhancement into ' + stat.label + '">+3</button>' +
+        "</div>" +
+        '<div class="plus3-list" data-role="plus3-list" data-key="' + stat.key + '"></div>' +
+        "</td>" +
         '<td class="weight-cell">×0.000</td>' +
         '<td class="points-cell is-zero">0.00</td>';
       els.statRows.appendChild(tr);
@@ -114,32 +117,87 @@
       if (!tr) return;
       const options = rollOptions(profile, stat.key);
       const base = tr.querySelector('[data-role="base-roll"]');
-      const added = tr.querySelector('[data-role="plus3-roll"]');
       if (base) {
         base.innerHTML = selectMarkup(options, "roll");
         base.value = "";
-      }
-      if (added) {
-        added.innerHTML = selectMarkup(options, "add");
-        added.value = "";
       }
     });
   }
 
   function reconcilePlusThree(profile) {
     STATS.forEach(function (stat) {
-      const pt = state.plusThree[stat.key];
-      if (!pt.active) return;
       const options = rollOptions(profile, stat.key);
-      const valid = options.some(function (v) {
-        return String(v) === String(pt.roll);
-      });
-      if (valid) return;
       const base = parseValue(state.stats[stat.key]);
       const matchesBase = options.some(function (v) {
         return v === base;
       });
-      pt.roll = String(matchesBase ? base : options[0]);
+      state.plusThree[stat.key] = state.plusThree[stat.key].map(function (value) {
+        const valid = options.some(function (v) {
+          return String(v) === String(value);
+        });
+        return valid ? String(value) : String(matchesBase ? base : options[0]);
+      });
+    });
+  }
+
+  function trimPlusThree() {
+    const max = Math.max(0, Math.floor((15 - state.stage) / 3));
+    let excess = countPlusThree(state.plusThree) - max;
+    while (excess > 0) {
+      for (let i = STATS.length - 1; i >= 0 && excess > 0; i -= 1) {
+        const rolls = state.plusThree[STATS[i].key];
+        if (rolls.length) {
+          rolls.pop();
+          excess -= 1;
+        }
+      }
+    }
+  }
+
+  function defaultRollValue(key) {
+    const options = rollOptions(currentProfile(), key);
+    const base = parseValue(state.stats[key]);
+    const matchesBase = options.some(function (v) {
+      return v === base;
+    });
+    return String(matchesBase ? base : options[0]);
+  }
+
+  function addPlusThree(key) {
+    if (effectiveStage(state.stage, countPlusThree(state.plusThree)) >= 15) return;
+    state.plusThree[key].push(defaultRollValue(key));
+  }
+
+  function renderChips(profile) {
+    STATS.forEach(function (stat) {
+      const container = els.statRows.querySelector(
+        'tr[data-stat="' + stat.key + '"] [data-role="plus3-list"]'
+      );
+      if (!container) return;
+      const rolls = state.plusThree[stat.key];
+      const signature = profile.key + "|" + rolls.join(",");
+      if (chipSignatures[stat.key] === signature) return;
+      chipSignatures[stat.key] = signature;
+      const options = rollOptions(profile, stat.key);
+      container.innerHTML = rolls
+        .map(function (value, index) {
+          return (
+            '<div class="plus3-chip">' +
+            '<span class="chip-tag">+3</span>' +
+            '<select class="roll-select chip-roll" data-role="chip-roll" data-key="' + stat.key +
+            '" data-index="' + index + '" aria-label="Enhancement roll ' + (index + 1) + " for " + stat.label + '">' +
+            selectMarkup(options, "roll") +
+            "</select>" +
+            '<button class="chip-remove" type="button" data-role="remove-plus3" data-key="' + stat.key +
+            '" data-index="' + index + '" aria-label="Remove enhancement roll ' + (index + 1) + " for " + stat.label +
+            '" title="Remove this roll">×</button>' +
+            "</div>"
+          );
+        })
+        .join("");
+      Array.prototype.forEach.call(container.querySelectorAll('[data-role="chip-roll"]'), function (select, index) {
+        select.value = rolls[index];
+      });
     });
   }
 
@@ -217,10 +275,10 @@
     }
   }
 
-  function renderReach(rows, profile) {
+  function renderReach(rows, profile, stage) {
     els.reachRows.innerHTML = rows
       .map(function (row) {
-        const isCurrent = row.stage === state.stage;
+        const isCurrent = row.stage === stage;
         const best = row.bestCase == null ? "—" : fmt(row.bestCase);
         const classes = [isCurrent ? "is-current" : "", row.state === "past" ? "is-past" : ""].filter(Boolean).join(" ");
         const title = row.remaining > 0 ? row.remaining + " remaining roll(s)" : "no remaining rolls";
@@ -236,7 +294,7 @@
       })
       .join("");
 
-    const remaining = totalRolls(profile) - rollsAt(profile, state.stage);
+    const remaining = totalRolls(profile) - rollsAt(profile, stage);
     if (rows[0] && rows[0].state === "empty") {
       els.reachNote.textContent = "Enter at least one substat to calculate best-case reachability. Benchmarks are shown for reference.";
     } else if (remaining > 0) {
@@ -251,12 +309,12 @@
     }
   }
 
-  function renderBenchmarks(profile) {
+  function renderBenchmarks(profile, stage) {
     els.benchGrid.querySelectorAll(".bench-card").forEach((card) => {
       const active = card.dataset.profile === profile.key;
       card.classList.toggle("is-active", active);
       card.querySelectorAll("tbody tr").forEach((tr) => {
-        tr.classList.toggle("is-current", active && Number(tr.dataset.stage) === state.stage);
+        tr.classList.toggle("is-current", active && Number(tr.dataset.stage) === stage);
       });
     });
   }
@@ -284,10 +342,12 @@
       lastProfileKey = profile.key;
     }
 
+    renderChips(profile);
     const effective = effectiveStats(state.stats, state.plusThree);
     const score = computeScore(profile, effective);
     const hasStats = score.rows.some((row) => row.value > 0);
-    const currentRolls = rollsAt(profile, state.stage);
+    const displayStage = effectiveStage(state.stage, countPlusThree(state.plusThree));
+    const currentRolls = rollsAt(profile, displayStage);
     const finalRolls = totalRolls(profile);
 
     setSelected(els.levelControl, "level", state.level, false);
@@ -302,7 +362,7 @@
       }
     });
     setSelected(els.rarityControl, "rarity", state.rarity, true);
-    setSelected(els.enhanceControl, "stage", state.stage, false);
+    setSelected(els.enhanceControl, "stage", displayStage, false);
 
     els.formulaText.textContent = formulaFor(state.level);
     els.profileChip.textContent = profile.label;
@@ -316,11 +376,10 @@
       pointsCell.textContent = fmt(row.points);
       pointsCell.classList.toggle("is-zero", row.points === 0);
 
-      const pt = state.plusThree[row.key];
+      const rolls = state.plusThree[row.key];
       const options = rollOptions(profile, row.key);
       const baseSelect = tr.querySelector('[data-role="base-roll"]');
-      const addedSelect = tr.querySelector('[data-role="plus3-roll"]');
-      const toggle = tr.querySelector('[data-role="plus3"]');
+      const addButton = tr.querySelector('[data-role="add-plus3"]');
       const projection = tr.querySelector(".value-projection");
 
       if (baseSelect) {
@@ -328,32 +387,30 @@
           ? state.stats[row.key]
           : "";
       }
-      if (addedSelect) {
-        addedSelect.value = options.some((v) => String(v) === String(pt.roll)) ? pt.roll : "";
-        addedSelect.hidden = !pt.active;
+      if (addButton) {
+        addButton.disabled = displayStage >= 15;
+        addButton.title = addButton.disabled
+          ? "Gear is already at +15"
+          : "Roll an enhancement into " + row.label;
       }
-      if (toggle) {
-        toggle.classList.toggle("is-active", pt.active);
-        toggle.setAttribute("aria-pressed", String(pt.active));
-      }
-      tr.classList.toggle("has-plus3", pt.active);
+      tr.classList.toggle("has-plus3", rolls.length > 0);
       if (projection) {
-        projection.hidden = !pt.active;
-        projection.textContent = pt.active ? "→ " + fmt(effective[row.key]) : "";
+        projection.hidden = rolls.length === 0;
+        projection.textContent = rolls.length ? "→ " + fmt(effective[row.key]) : "";
       }
     });
 
     els.totalScore.textContent = fmt(score.total);
     els.scoreBig.textContent = fmt(score.total);
     els.scoreProfile.textContent = profile.label;
-    els.scoreStage.textContent = formatStage(state.stage);
+    els.scoreStage.textContent = formatStage(displayStage);
     els.scoreRolls.textContent = currentRolls + (currentRolls === 1 ? " roll" : " rolls");
     els.scoreSystem.textContent = profile.system;
     els.scoreMaxroll.textContent = String(profile.maxRollPoints);
     els.scoreTarget.textContent = fmt(profile.perRoll);
 
-    renderReach(buildReachability(profile, state.stage, score.total, hasStats), profile);
-    renderBenchmarks(profile);
+    renderReach(buildReachability(profile, displayStage, score.total, hasStats), profile, displayStage);
+    renderBenchmarks(profile, displayStage);
   }
 
   function applyTheme() {
@@ -382,7 +439,7 @@
       stats: Object.assign({}, state.stats),
       plusThree: Object.fromEntries(
         STATS.map(function (stat) {
-          return [stat.key, Object.assign({}, state.plusThree[stat.key])];
+          return [stat.key, state.plusThree[stat.key].slice()];
         })
       ),
       theme: state.theme,
@@ -425,13 +482,16 @@
     if (saved.plusThree && typeof saved.plusThree === "object") {
       STATS.forEach(function (stat) {
         const entry = saved.plusThree[stat.key];
-        if (entry && typeof entry === "object") {
-          state.plusThree[stat.key] = {
-            active: Boolean(entry.active),
-            roll: entry.roll == null ? "" : String(entry.roll),
-          };
+        if (Array.isArray(entry)) {
+          state.plusThree[stat.key] = entry.map(function (value) {
+            return value == null ? "" : String(value);
+          });
+        } else if (entry && typeof entry === "object" && entry.active) {
+          // Migrate the previous single-roll shape.
+          state.plusThree[stat.key] = [entry.roll == null ? "" : String(entry.roll)];
         }
       });
+      trimPlusThree();
     }
     if (saved.theme === "dark" || saved.theme === "light") state.theme = saved.theme;
     if (["calculator", "benchmarks", "reference"].indexOf(saved.view) !== -1) state.view = saved.view;
@@ -506,7 +566,19 @@
   els.enhanceControl.addEventListener("click", function (event) {
     const btn = event.target.closest("button[data-stage]");
     if (!btn || btn.disabled) return;
-    state.stage = Number(btn.dataset.stage);
+    const desired = Number(btn.dataset.stage);
+    trimPlusThree();
+    let excess = countPlusThree(state.plusThree) - Math.floor(desired / 3);
+    while (excess > 0) {
+      for (let i = STATS.length - 1; i >= 0 && excess > 0; i -= 1) {
+        const rolls = state.plusThree[STATS[i].key];
+        if (rolls.length) {
+          rolls.pop();
+          excess -= 1;
+        }
+      }
+    }
+    state.stage = Math.max(0, desired - 3 * countPlusThree(state.plusThree));
     render();
     scheduleSave();
   });
@@ -528,30 +600,36 @@
       scheduleSave();
       return;
     }
-    const added = event.target.closest('select[data-role="plus3-roll"]');
-    if (added) {
-      state.plusThree[added.dataset.key].roll = added.value;
-      render();
-      scheduleSave();
+    const chip = event.target.closest('select[data-role="chip-roll"]');
+    if (chip) {
+      const rolls = state.plusThree[chip.dataset.key];
+      const index = Number(chip.dataset.index);
+      if (rolls && index >= 0 && index < rolls.length) {
+        rolls[index] = chip.value;
+        render();
+        scheduleSave();
+      }
     }
   });
 
   els.statRows.addEventListener("click", function (event) {
-    const toggle = event.target.closest('button[data-role="plus3"]');
-    if (!toggle) return;
-    const key = toggle.dataset.key;
-    const pt = state.plusThree[key];
-    pt.active = !pt.active;
-    if (pt.active && !pt.roll) {
-      const options = rollOptions(currentProfile(), key);
-      const base = parseValue(state.stats[key]);
-      const matchesBase = options.some(function (v) {
-        return v === base;
-      });
-      pt.roll = String(matchesBase ? base : options[0]);
+    const add = event.target.closest('button[data-role="add-plus3"]');
+    if (add) {
+      addPlusThree(add.dataset.key);
+      render();
+      scheduleSave();
+      return;
     }
-    render();
-    scheduleSave();
+    const remove = event.target.closest('button[data-role="remove-plus3"]');
+    if (remove) {
+      const rolls = state.plusThree[remove.dataset.key];
+      const index = Number(remove.dataset.index);
+      if (rolls && index >= 0 && index < rolls.length) {
+        rolls.splice(index, 1);
+        render();
+        scheduleSave();
+      }
+    }
   });
 
   els.statRows.addEventListener("keydown", function (event) {
@@ -571,7 +649,7 @@
   els.clearStats.addEventListener("click", function () {
     STATS.forEach(function (stat) {
       state.stats[stat.key] = "";
-      state.plusThree[stat.key] = { active: false, roll: "" };
+      state.plusThree[stat.key] = [];
     });
     syncInputs();
     render();

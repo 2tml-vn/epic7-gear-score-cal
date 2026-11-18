@@ -601,7 +601,7 @@ html[data-theme="light"] .icon-sun {
   border-color: var(--accent);
 }
 
-.plus3-toggle {
+.add-plus3 {
   flex: 0 0 auto;
   height: 26px;
   padding: 0 7px;
@@ -615,15 +615,56 @@ html[data-theme="light"] .icon-sun {
   cursor: pointer;
 }
 
-.plus3-toggle:hover {
+.add-plus3:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--text);
 }
 
-.plus3-toggle.is-active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
+.add-plus3:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.plus3-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2px 0 5px;
+}
+
+.plus3-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chip-tag {
+  flex: 0 0 auto;
+  min-width: 20px;
+  color: var(--good);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.chip-remove {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--panel-3);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.chip-remove:hover {
+  border-color: var(--bad);
+  color: var(--bad);
 }
 
 .stat-grid tbody tr.has-plus3 {

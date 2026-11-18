@@ -126,16 +126,29 @@
     return list;
   }
 
-  // Applies any marked +3 rolls on top of the entered base values.
+  // Each entry in a stat's array is one enhancement roll that landed there.
   function effectiveStats(stats, plusThree) {
     const out = {};
     STATS.forEach(function (stat) {
       const base = parseValue(stats ? stats[stat.key] : 0);
-      const entry = plusThree ? plusThree[stat.key] : null;
-      const added = entry && entry.active ? parseValue(entry.roll) : 0;
+      const rolls = plusThree && Array.isArray(plusThree[stat.key]) ? plusThree[stat.key] : [];
+      const added = rolls.reduce(function (sum, value) {
+        return sum + parseValue(value);
+      }, 0);
       out[stat.key] = base + added;
     });
     return out;
+  }
+
+  function countPlusThree(plusThree) {
+    return STATS.reduce(function (sum, stat) {
+      const rolls = plusThree && Array.isArray(plusThree[stat.key]) ? plusThree[stat.key] : [];
+      return sum + rolls.length;
+    }, 0);
+  }
+
+  function effectiveStage(stage, count) {
+    return Math.min(15, Number(stage) + 3 * Number(count));
   }
 
   function computeScore(profile, stats) {
@@ -258,6 +271,8 @@
     parseValue: parseValue,
     rollOptions: rollOptions,
     effectiveStats: effectiveStats,
+    countPlusThree: countPlusThree,
+    effectiveStage: effectiveStage,
     computeScore: computeScore,
     buildBenchmarkTable: buildBenchmarkTable,
     buildReachability: buildReachability,
