@@ -17,7 +17,6 @@
     buildBenchmarkTable,
     buildReachability,
     fmt,
-    weightLabel,
     formatStage,
   } = window.E7Calc;
 
@@ -75,32 +74,26 @@
   }
 
   function buildStatRows() {
-    STATS.forEach((stat, index) => {
+    STATS.forEach((stat) => {
       const tr = document.createElement("tr");
       tr.dataset.stat = stat.key;
       tr.innerHTML =
-        '<th class="gutter">' +
-        (index + 2) +
-        "</th>" +
         '<td><div class="stat-cell">' +
         '<span class="stat-dot ' + stat.kind + '"></span>' +
         '<span class="stat-name">' + stat.label + "</span>" +
         '<span class="stat-suffix">' + stat.suffix + "</span>" +
         "</div></td>" +
         '<td class="value-cell"><div class="value-wrap">' +
-        '<input type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" id="stat-' +
-        stat.key +
-        '" data-key="' + stat.key + '" aria-label="' + stat.label + stat.suffix + '">' +
-        '<span class="value-projection" hidden></span>' +
-        "</div></td>" +
-        '<td class="roll-cell"><div class="roll-controls">' +
         '<span class="base-tag">BASE</span>' +
         '<select class="roll-select base-roll" data-role="base-roll" data-key="' + stat.key +
         '" aria-label="Base value for ' + stat.label + '"></select>' +
+        '<input type="number" min="0" step="0.1" inputmode="decimal" placeholder="custom" id="stat-' +
+        stat.key +
+        '" data-key="' + stat.key + '" aria-label="' + stat.label + stat.suffix + '">' +
+        '<span class="value-projection" hidden></span>' +
         "</div>" +
         '<div class="plus3-list" data-role="plus3-list" data-key="' + stat.key + '"></div>' +
         "</td>" +
-        '<td class="weight-cell">×0.000</td>' +
         '<td class="points-cell is-zero">0.00</td>';
       els.statRows.appendChild(tr);
     });
@@ -396,9 +389,9 @@
       note =
         "Best-case = current score + " +
         profile.maxRollPoints +
-        " points for each remaining roll (" +
+        " pts per remaining roll (" +
         remaining +
-        " to +15). The raw best-case is shown above the gem line; a stage is reachable when the gem-inclusive best-case meets the benchmark.";
+        " to +15). Raw is above the gem line; a stage is reachable when the gem-inclusive best-case meets its benchmark.";
     } else {
       note = "This gear is at +15; no further upgrades remain.";
     }
@@ -416,19 +409,13 @@
         '<div class="mod-plan-head"><strong>Greater mod gem · ' + modeText +
         '</strong><span>1 base roll kept</span></div>' +
         '<div class="mod-plan-flow">' +
-        '<div class="mod-plan-side">' +
         '<span class="mod-plan-label">FROM</span>' +
         '<span class="mod-plan-stat">' + gemRow.gemSourceLabel + "</span>" +
         '<span class="mod-plan-value">' + fmt(gemRow.gemSourceValue) + "</span>" +
-        '<span class="mod-plan-pts">' + fmt(gemRow.gemSourcePoints) + " pts</span>" +
-        "</div>" +
         '<span class="mod-plan-arrow">→</span>' +
-        '<div class="mod-plan-side">' +
         '<span class="mod-plan-label">TO</span>' +
         '<span class="mod-plan-stat">' + gemRow.gemTargetLabel + "</span>" +
         '<span class="mod-plan-value">' + fmt(gemRow.gemTargetValue) + "</span>" +
-        '<span class="mod-plan-pts">' + fmt(gemRow.gemTargetPoints) + " pts</span>" +
-        "</div>" +
         '<span class="mod-plan-gain">+' + fmt(gemRow.gemPoints) + " pts</span>" +
         "</div>";
     } else {
@@ -512,7 +499,6 @@
     score.rows.forEach((row) => {
       const tr = els.statRows.querySelector('tr[data-stat="' + row.key + '"]');
       if (!tr) return;
-      tr.querySelector(".weight-cell").textContent = weightLabel(profile, row.key);
       const pointsCell = tr.querySelector(".points-cell");
       pointsCell.textContent = fmt(row.points);
       pointsCell.classList.toggle("is-zero", row.points === 0);

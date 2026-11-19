@@ -380,7 +380,7 @@ html[data-theme="light"] .icon-sun {
 
 .calculator-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 440px;
+  grid-template-columns: minmax(0, 1fr) 480px;
   gap: 14px;
   align-items: start;
   margin-bottom: 12px;
@@ -416,12 +416,9 @@ html[data-theme="light"] .icon-sun {
   table-layout: fixed;
 }
 
-.stat-grid col.col-gutter { width: 42px; }
-.stat-grid col.col-stat { width: 27%; }
-.stat-grid col.col-value { width: 20%; }
-.stat-grid col.col-roll { width: 18%; }
-.stat-grid col.col-weight { width: 16%; }
-.stat-grid col.col-points { width: 19%; }
+.stat-grid col.col-stat { width: 34%; }
+.stat-grid col.col-value { width: 46%; }
+.stat-grid col.col-points { width: 20%; }
 
 .stat-grid th,
 .stat-grid td {
@@ -441,26 +438,6 @@ html[data-theme="light"] .icon-sun {
   border-bottom: 0;
 }
 
-.stat-grid .gutter {
-  width: 42px;
-  background: var(--panel-2);
-  color: var(--faint);
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 400;
-  text-align: center;
-}
-
-.col-letter-row th {
-  height: 22px;
-  background: var(--panel-3);
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  text-align: center;
-}
-
 .field-row th {
   height: 26px;
   padding: 0 12px !important;
@@ -470,12 +447,11 @@ html[data-theme="light"] .icon-sun {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  text-align: left;
+  text-align: center;
 }
 
 .field-row th:first-child {
-  padding: 0 !important;
-  text-align: center;
+  text-align: left;
 }
 
 .stat-grid tbody tr {
@@ -529,18 +505,18 @@ html[data-theme="light"] .icon-sun {
 
 .value-cell input {
   display: block;
-  flex: 1 1 auto;
-  width: 100%;
+  flex: 0 0 64px;
+  width: 64px;
   min-width: 0;
   height: 30px;
-  padding: 0 12px;
+  padding: 0 4px;
   border: 0;
   outline: 0;
   background: transparent;
   color: var(--text);
   font-family: var(--mono);
   font-size: 14px;
-  text-align: right;
+  text-align: center;
   -moz-appearance: textfield;
 }
 
@@ -563,8 +539,10 @@ html[data-theme="light"] .icon-sun {
 .value-wrap {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 6px;
   height: 30px;
-  padding-right: 8px;
+  padding: 0 8px;
 }
 
 .value-projection {
@@ -581,20 +559,8 @@ html[data-theme="light"] .icon-sun {
   display: none;
 }
 
-.roll-cell {
-  background: var(--panel-2);
-  padding: 0 6px;
-}
-
-.roll-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 30px;
-}
-
 .roll-select {
-  flex: 1 1 auto;
+  flex: 0 0 80px;
   min-width: 0;
   height: 26px;
   padding: 0 4px;
@@ -779,6 +745,9 @@ html[data-theme="light"] .icon-sun {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  width: 240px;
+  max-width: 100%;
+  margin: 0 auto;
   padding: 2px 0 5px;
 }
 
@@ -838,19 +807,11 @@ html[data-theme="light"] .icon-sun {
   background: var(--good-soft);
 }
 
-.weight-cell,
 .points-cell {
   padding: 0 12px;
-  text-align: right;
+  text-align: center;
   font-family: var(--mono);
   font-size: 12px;
-}
-
-.weight-cell {
-  color: var(--muted);
-}
-
-.points-cell {
   color: var(--accent-2);
   font-weight: 600;
 }
@@ -867,24 +828,16 @@ html[data-theme="light"] .icon-sun {
 
 .total-label {
   padding: 0 12px !important;
-  text-align: right;
+  text-align: center;
   font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--muted);
 }
 
-.total-mark {
-  text-align: right;
-  padding: 0 12px !important;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--faint);
-}
-
 .total-value {
   padding: 0 12px !important;
-  text-align: right;
+  text-align: center;
   font-family: var(--mono);
   font-size: 18px;
   font-weight: 700;
@@ -903,8 +856,8 @@ html[data-theme="light"] .icon-sun {
 
 .reach-panel .reach-table th,
 .reach-panel .reach-table td {
-  padding: 3px 7px;
-  font-size: 11px;
+  padding: 5px 9px;
+  font-size: 12px;
 }
 
 .reach-panel .hint {
@@ -964,14 +917,8 @@ html[data-theme="light"] .icon-sun {
 .mod-plan-flow {
   display: flex;
   align-items: center;
-  gap: 9px;
-}
-
-.mod-plan-side {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
+  flex-wrap: wrap;
+  gap: 4px 8px;
 }
 
 .mod-plan-label {
@@ -992,12 +939,6 @@ html[data-theme="light"] .icon-sun {
   font-size: 12px;
   font-weight: 700;
   color: var(--accent-2);
-}
-
-.mod-plan-pts {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  color: var(--muted);
 }
 
 .mod-plan-arrow {

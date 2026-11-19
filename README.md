@@ -12,6 +12,7 @@ A portable, offline Windows app that calculates Epic Seven gear scores and check
 - Each substat has a dropdown of valid single-roll values for the gear profile (e.g. 4–8% for Lv 85 ATK%). SPD ranges are 2–5 for Lv 85 Epic (5 is rare), 1–4 for Lv 85 Heroic (1 is rare), and 3–5 for Lv 88 Epic. Typing a value directly is still allowed.
 - An **Add enhancement roll** box lets you pick a **substat** and a **roll value**, then add the roll. The substat list contains only stats that already have a base value (the 3 or 4 substats the gear rolled with). Each add leaves the base untouched, advances the enhancement level by `+3` and the roll count by one, and updates the score immediately. Added rolls are listed with remove buttons; the row also shows `base → total`.
 - Each added roll advances the displayed enhancement level by `+3` and the roll count by one (capped at `+15`). Changing the Enhance buttons rebalances the added rolls to match the selected stage.
+- The substat grid has three columns — **Substat**, **Value + Rolls** (base picker, custom value, `+3` chips, and `base → total`), and **Points** — with the total gear score in the footer.
 
 Flat ATK / HP / DEF, main stats, and set bonuses are ignored entirely.
 

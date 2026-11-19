@@ -99,43 +99,27 @@
               <div class="sheet-frame">
                 <table class="stat-grid" id="stat-grid">
                   <colgroup>
-                    <col class="col-gutter" />
                     <col class="col-stat" />
                     <col class="col-value" />
-                    <col class="col-roll" />
-                    <col class="col-weight" />
                     <col class="col-points" />
                   </colgroup>
                   <thead>
-                    <tr class="col-letter-row">
-                      <th class="gutter" aria-hidden="true"></th>
-                      <th>A</th>
-                      <th>B</th>
-                      <th>C</th>
-                      <th>D</th>
-                      <th>E</th>
-                    </tr>
                     <tr class="field-row">
-                      <th class="gutter">1</th>
                       <th scope="col">Substat</th>
-                      <th scope="col">Value</th>
-                      <th scope="col">Base / Rolls</th>
-                      <th scope="col">Weight</th>
+                      <th scope="col">Value + Rolls</th>
                       <th scope="col">Points</th>
                     </tr>
                   </thead>
                   <tbody id="stat-rows"></tbody>
                   <tfoot>
                     <tr>
-                      <th class="gutter">10</th>
-                      <td colspan="3" class="total-label">TOTAL GEAR SCORE</td>
-                      <td class="total-mark">=SUM</td>
+                      <td colspan="2" class="total-label">TOTAL GEAR SCORE</td>
                       <td class="total-value"><span id="total-score">0.00</span></td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
-              <p class="hint"><strong>BASE</strong> sets the substat value at the current gear state (or type any value). Enhancement rolls are added in the box above; they only land on substats that have a base value, and changing a roll never changes the base. The row shows <code>base → total</code>. Flat ATK / HP / DEF, main stats, and set bonuses are ignored.</p>
+              <p class="hint">Pick a valid single roll from <strong>BASE</strong>, or type any value. Add <code>+3</code> rolls with the box above; they only land on substats with a base value. The row shows <code>base → total</code>. Flat stats, main stats, and set bonuses are ignored.</p>
             </div>
 
             <div class="side-column">
