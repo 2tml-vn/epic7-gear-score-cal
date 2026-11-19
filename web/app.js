@@ -46,13 +46,6 @@
     rollCount: document.getElementById("roll-count"),
     statRows: document.getElementById("stat-rows"),
     totalScore: document.getElementById("total-score"),
-    scoreBig: document.getElementById("score-big"),
-    scoreProfile: document.getElementById("score-profile"),
-    scoreStage: document.getElementById("score-stage"),
-    scoreRolls: document.getElementById("score-rolls"),
-    scoreSystem: document.getElementById("score-system"),
-    scoreMaxroll: document.getElementById("score-maxroll"),
-    scoreTarget: document.getElementById("score-target"),
     reachRows: document.getElementById("reach-rows"),
     reachNote: document.getElementById("reach-note"),
     modGemControl: document.getElementById("mod-gem-control"),
@@ -551,13 +544,6 @@
     });
 
     els.totalScore.textContent = fmt(score.total);
-    els.scoreBig.textContent = fmt(score.total);
-    els.scoreProfile.textContent = profile.label;
-    els.scoreStage.textContent = formatStage(displayStage);
-    els.scoreRolls.textContent = currentRolls + (currentRolls === 1 ? " roll" : " rolls");
-    els.scoreSystem.textContent = profile.system;
-    els.scoreMaxroll.textContent = String(profile.maxRollPoints);
-    els.scoreTarget.textContent = fmt(profile.perRoll);
 
     syncAddRollControls(profile, displayStage, score);
     renderRollLog();
