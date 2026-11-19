@@ -242,6 +242,11 @@ test("reachability projects gem points into every stage of Lv85 gear", () => {
   assert.equal(rows[0].bestCase, 18); // 14 + 4 gem
   assert.equal(rows[5].rawBestCase, 54); // 14 + 5*8
   assert.equal(rows[5].bestCase, 58); // 54 + 4 gem
+  assert.equal(rows[5].gemSourceLabel, "ATK%");
+  assert.equal(rows[5].gemSourceValue, 4);
+  assert.equal(rows[5].gemSourcePoints, 4);
+  assert.equal(rows[5].gemTargetPoints, 8);
+  assert.ok(Math.abs(rows[5].gemSourcePoints + rows[5].gemPoints - rows[5].gemTargetPoints) < 1e-9);
 });
 
 test("reachability with a gem leaves Lv88 and past stages untouched", () => {

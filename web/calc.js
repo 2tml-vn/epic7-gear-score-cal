@@ -253,9 +253,12 @@
           points: gain,
           sourceKey: source.key,
           sourceLabel: source.label + source.suffix,
+          sourceValue: base,
+          sourcePoints: sourcePoints,
           targetKey: target.key,
           targetLabel: target.label + target.suffix,
           targetValue: newValue,
+          targetPoints: newValue * profile.weights[target.key],
         };
       });
     });
@@ -337,8 +340,11 @@
         gemPoints: gemPoints,
         gemMode: modGem ? modGem.mode : "off",
         gemSourceLabel: gem ? gem.sourceLabel : null,
+        gemSourceValue: gem ? gem.sourceValue : null,
+        gemSourcePoints: gem ? gem.sourcePoints : null,
         gemTargetLabel: gem ? gem.targetLabel : null,
         gemTargetValue: gem ? gem.targetValue : null,
+        gemTargetPoints: gem ? gem.targetPoints : null,
       };
     });
   }

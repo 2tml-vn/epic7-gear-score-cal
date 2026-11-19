@@ -56,6 +56,7 @@
     reachRows: document.getElementById("reach-rows"),
     reachNote: document.getElementById("reach-note"),
     modGemControl: document.getElementById("mod-gem-control"),
+    modPlan: document.getElementById("mod-plan"),
     benchGrid: document.getElementById("bench-grid"),
     rollTarget: document.getElementById("roll-target"),
     rollValue: document.getElementById("roll-value"),
@@ -404,10 +405,11 @@
         profile.maxRollPoints +
         " points for each remaining roll (" +
         remaining +
-        " to +15). A stage is reachable when its best-case score meets the benchmark.";
+        " to +15). The raw best-case is shown above the gem line; a stage is reachable when the gem-inclusive best-case meets the benchmark.";
     } else {
       note = "This gear is at +15; no further upgrades remain.";
     }
+    els.reachNote.textContent = note;
 
     const gemRow = rows
       .slice()
@@ -415,26 +417,37 @@
       .find(function (row) {
         return row.gemPoints > 0;
       });
-    const isEmpty = rows[0] && rows[0].state === "empty";
     if (gemRow) {
       const modeText = gemRow.gemMode === "same" ? "Same stat" : "Any stat";
-      note +=
-        " Includes +" +
-        fmt(gemRow.gemPoints) +
-        " pts from one Greater gem (" +
-        modeText +
-        " mode: " +
-        gemRow.gemSourceLabel +
-        " → " +
-        gemRow.gemTargetLabel +
-        " " +
-        fmt(gemRow.gemTargetValue) +
-        "); that substat was kept at 1 base roll.";
-    } else if (!isEmpty && profile.level === 85 && state.modGemMode !== "off") {
-      note +=
-        " No Greater gem gain: no eligible substat is still at 1 base roll or no valid target remains.";
+      els.modPlan.innerHTML =
+        '<div class="mod-plan-head"><strong>Greater mod gem · ' + modeText +
+        '</strong><span>1 base roll kept</span></div>' +
+        '<div class="mod-plan-flow">' +
+        '<div class="mod-plan-side">' +
+        '<span class="mod-plan-label">FROM</span>' +
+        '<span class="mod-plan-stat">' + gemRow.gemSourceLabel + "</span>" +
+        '<span class="mod-plan-value">' + fmt(gemRow.gemSourceValue) + "</span>" +
+        '<span class="mod-plan-pts">' + fmt(gemRow.gemSourcePoints) + " pts</span>" +
+        "</div>" +
+        '<span class="mod-plan-arrow">→</span>' +
+        '<div class="mod-plan-side">' +
+        '<span class="mod-plan-label">TO</span>' +
+        '<span class="mod-plan-stat">' + gemRow.gemTargetLabel + "</span>" +
+        '<span class="mod-plan-value">' + fmt(gemRow.gemTargetValue) + "</span>" +
+        '<span class="mod-plan-pts">' + fmt(gemRow.gemTargetPoints) + " pts</span>" +
+        "</div>" +
+        '<span class="mod-plan-gain">+' + fmt(gemRow.gemPoints) + " pts</span>" +
+        "</div>";
+    } else {
+      let reason;
+      if (profile.level !== 85) reason = "Lv 85 gear only";
+      else if (state.modGemMode === "off") reason = "Gem disabled (Off)";
+      else if (rows[0] && rows[0].state === "empty") reason = "Enter substats to see a mod plan";
+      else reason = "No eligible substat at 1 base roll or no valid target";
+      els.modPlan.innerHTML =
+        '<div class="mod-plan-head"><strong>Greater mod gem</strong></div>' +
+        '<div class="mod-plan-empty">' + reason + "</div>";
     }
-    els.reachNote.textContent = note;
   }
 
   function renderBenchmarks(profile, stage) {
