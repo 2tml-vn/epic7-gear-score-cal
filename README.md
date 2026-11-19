@@ -54,6 +54,20 @@ best-case score = current score + remaining rolls × max points per roll
 
 A maximum roll is worth **8 points on Lv 85** and **10 points on Lv 88** for every non-flat stat. A stage is reachable when the best-case score is at least that stage's benchmark. Results are shown as `Reachable`, `Not reachable`, `Met`, or `Below`; stages already passed are shown as `—`.
 
+### Substat modification gem (Lv 85 only)
+
+The **Mod gem** control in the reachability panel has three modes: **Off**, **Same stat** (ATK% → ATK%), and **Any stat** (ATK% → any substat not already on the gear). Lv 88 gear ignores the setting.
+
+A Greater gem can only be used on a substat that is still at **one base roll** — no `+3` roll has landed on it. The sheet tracks this per substat at every stage: if a projected roll lands on the gem source, the calculation switches to another eligible substat, or drops the gem gain to zero if none remain. Remaining rolls in the projection are placed on the other substats so the chosen source stays at one base roll.
+
+Best-case reachability includes the extra points from the single best gem use at every stage:
+
+```
+best-case score = current score + remaining rolls × max points per roll + gem points
+```
+
+Gem points = the highest `(new points − old points)` over all eligible sources and allowed targets, floored at zero. The Greater base-roll maximums ("88 or lower") are pct 8, SPD 4, and CD 7 — each worth 8 points at Lv 85. Crit Chance is excluded as a target because its mod value is 1 lower. A same-stat mod keeps the higher of the old and new values; a target already present on the gear is not allowed (except the same stat itself).
+
 ## Run from source
 
 Requires Python 3.11+ and the WebView2 runtime (already present on Windows 11 and most Windows 10 installs).
@@ -71,9 +85,9 @@ Pass `--debug` to open developer tools.
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-Output: `dist\E7GearSheet.exe`
+Output: `dist\E7GearSheet.exe` — this is the only command you need to rebuild; run it again after any change under `web\`. Close a running `E7GearSheet.exe` first, otherwise the rebuild cannot replace it.
 
-The build installs PyInstaller, generates `assets\icon.ico`, and bundles the HTML/CSS/JS into a single portable executable. Settings are saved to `%APPDATA%\E7GearSheet\state.json`.
+The script creates/updates `.venv`, installs PyInstaller and `requirements.txt`, generates `assets\icon.ico`, and bundles the HTML/CSS/JS into a single portable executable. Settings are saved to `%APPDATA%\E7GearSheet\state.json` and are kept across rebuilds.
 
 Windows may warn that the executable is unsigned. Choose **More info → Run anyway** the first time.
 

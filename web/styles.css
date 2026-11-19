@@ -980,7 +980,25 @@ html[data-theme="light"] .icon-sun {
 }
 
 .reach-panel .hint {
-  display: none;
+  display: block;
+  margin: 7px 2px 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--faint);
+}
+
+.mod-gem-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.mod-gem-control button {
+  min-width: 34px;
+  height: 24px;
+  padding: 0 9px;
+  font-size: 10.5px;
 }
 
 .reach-panel .now-tag {

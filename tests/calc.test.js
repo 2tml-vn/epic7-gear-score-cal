@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const calc = require("../web/calc.js");
 
-const { getProfile, rollsAt, totalRolls, computeScore, rollOptions, effectiveStats, countPlusThree, effectiveStage, buildBenchmarkTable, buildReachability, round2 } = calc;
+const { getProfile, rollsAt, totalRolls, computeScore, rollOptions, effectiveStats, countPlusThree, effectiveStage, buildBenchmarkTable, buildReachability, bestGreaterModGain, GREATER_MOD_MAX, round2 } = calc;
 
 function benchmarks(profile) {
   return buildBenchmarkTable(profile).map((row) => round2(row.benchmark));
@@ -152,4 +152,107 @@ test("score uses the stacked value for a substat with multiple rolls", () => {
   const score = computeScore(p, effectiveStats(base, plusThree));
   assert.equal(round2(score.total), 15);
   assert.equal(round2(score.rows[0].points), 15);
+});
+
+const blankStats = () => ({ atk: "", hp: "", def: "", spd: "", cc: "", cd: "", eff: "", er: "" });
+const blankRolls = () => ({ atk: [], hp: [], def: [], spd: [], cc: [], cd: [], eff: [], er: [] });
+
+test("Greater mod gem uses the level 88-or-lower base roll maximums", () => {
+  assert.deepEqual(GREATER_MOD_MAX, { pct: 8, spd: 4, cd: 7 });
+  assert.equal(GREATER_MOD_MAX.cc, undefined);
+});
+
+test("mod gem is disabled off, on Lv88, or with no eligible substat", () => {
+  const p85 = getProfile(85, "Epic");
+  const p88 = getProfile(88, "Epic");
+  const stats = Object.assign(blankStats(), { atk: 4, hp: 5 });
+  assert.equal(bestGreaterModGain("off", p85, stats, blankRolls(), 5), null);
+  assert.equal(bestGreaterModGain("any", p88, stats, blankRolls(), 5), null);
+  assert.equal(bestGreaterModGain("any", p85, blankStats(), blankRolls(), 5), null);
+});
+
+test("same-stat mode keeps the higher value and picks the best source", () => {
+  const p = getProfile(85, "Epic");
+  const stats = Object.assign(blankStats(), { atk: 4, hp: 5, spd: 3 });
+  const gem = bestGreaterModGain("same", p, stats, blankRolls(), 5);
+  assert.equal(gem.points, 4);
+  assert.equal(gem.sourceKey, "atk");
+  assert.equal(gem.targetKey, "atk");
+  assert.equal(gem.targetValue, 8);
+});
+
+test("same-stat mod cannot lower a value above the table maximum", () => {
+  const p = getProfile(85, "Epic");
+  const stats = Object.assign(blankStats(), { atk: 9 });
+  assert.equal(bestGreaterModGain("same", p, stats, blankRolls(), 0), null);
+  const stats2 = Object.assign(blankStats(), { atk: 6 });
+  const gem = bestGreaterModGain("same", p, stats2, blankRolls(), 0);
+  assert.equal(gem.targetValue, 8);
+  assert.equal(round2(gem.points), 2);
+});
+
+test("a substat that received a roll is not an eligible gem source", () => {
+  const p = getProfile(85, "Epic");
+  const stats = Object.assign(blankStats(), { atk: 4, hp: 5, spd: 3 });
+  const rolls = Object.assign(blankRolls(), { atk: ["4"] });
+  const gem = bestGreaterModGain("same", p, stats, rolls, 4);
+  assert.equal(gem.sourceKey, "hp");
+  assert.equal(round2(gem.points), 3);
+
+  const allRolled = Object.assign(blankRolls(), { atk: ["4"], hp: ["4"], spd: ["2"] });
+  assert.equal(bestGreaterModGain("same", p, stats, allRolled, 2), null);
+});
+
+test("any-stat mode excludes stats already on the gear", () => {
+  const p = getProfile(85, "Epic");
+  const stats = Object.assign(blankStats(), { atk: 4, spd: 3 });
+  const gem = bestGreaterModGain("any", p, stats, blankRolls(), 5);
+  assert.equal(gem.sourceKey, "atk");
+  assert.notEqual(gem.targetKey, "spd");
+  assert.equal(gem.points, 4);
+});
+
+test("any-stat mode excludes Crit Chance as a target", () => {
+  const p = getProfile(85, "Epic");
+  const stats = Object.assign(blankStats(), {
+    atk: 4, hp: 4, def: 4, spd: 3, cd: 7, eff: 4, er: 4,
+  });
+  const gem = bestGreaterModGain("any", p, stats, blankRolls(), 5);
+  assert.ok(gem);
+  assert.equal(gem.targetKey, gem.sourceKey);
+  assert.notEqual(gem.targetKey, "cc");
+});
+
+test("a lone substat cannot be modded while rolls remain", () => {
+  const p = getProfile(85, "Epic");
+  const stats = Object.assign(blankStats(), { atk: 4 });
+  assert.equal(bestGreaterModGain("any", p, stats, blankRolls(), 5), null);
+  const gem = bestGreaterModGain("any", p, stats, blankRolls(), 0);
+  assert.equal(gem.points, 4);
+});
+
+test("reachability projects gem points into every stage of Lv85 gear", () => {
+  const p = getProfile(85, "Epic");
+  const stats = Object.assign(blankStats(), { atk: 4, hp: 4, spd: 3 });
+  const modGem = { mode: "any", stats: stats, plusThree: blankRolls() };
+  const rows = buildReachability(p, 0, 14, true, modGem);
+  assert.ok(rows.every((row) => row.gemPoints === 4));
+  assert.equal(rows[0].bestCase, 18); // 14 + 0 remaining rolls + 4
+  assert.equal(rows[5].bestCase, 58); // 14 + 5*8 + 4
+});
+
+test("reachability with a gem leaves Lv88 and past stages untouched", () => {
+  const p85 = getProfile(85, "Epic");
+  const p88 = getProfile(88, "Epic");
+  const stats = Object.assign(blankStats(), { atk: 4, hp: 4, spd: 3 });
+  const modGem = { mode: "any", stats: stats, plusThree: blankRolls() };
+
+  const l88 = buildReachability(p88, 0, 14, true, modGem);
+  assert.ok(l88.every((row) => row.gemPoints === 0));
+  assert.equal(l88[5].bestCase, 64); // 14 + 5*10
+
+  const past = buildReachability(p85, 9, 14, true, modGem);
+  assert.equal(past[0].gemPoints, 0);
+  assert.equal(past[0].bestCase, null);
+  assert.equal(past[5].bestCase, 34); // 14 + 2*8 + 4
 });

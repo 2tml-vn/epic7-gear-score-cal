@@ -171,6 +171,14 @@
                 <div class="panel-heading compact">
                   <h2>Benchmark reachability</h2>
                 </div>
+                <div class="mod-gem-bar">
+                  <span class="setup-label">Mod gem</span>
+                  <div class="segmented mod-gem-control" id="mod-gem-control" role="group" aria-label="Substat mod gem mode">
+                    <button type="button" data-mod-gem="off" aria-pressed="false">Off</button>
+                    <button type="button" data-mod-gem="same" aria-pressed="false">Same stat</button>
+                    <button type="button" data-mod-gem="any" class="is-active" aria-pressed="true">Any stat</button>
+                  </div>
+                </div>
                 <div class="table-wrap">
                   <table class="reach-table" id="reach-table">
                     <thead>
@@ -264,6 +272,29 @@
                 <li>The Lv 85 average: <code>(5×6.00 + 6.00 + 6.29 + 6.40) ÷ 8 = 6.0857 ≈ 6.08</code>.</li>
                 <li>The Lv 88 target of 8.04 is the calibrated 10-point-system average per roll.</li>
                 <li>Main stats, set bonuses, and flat stats are not part of the score.</li>
+              </ul>
+            </article>
+
+            <article class="sheet-panel reference-card">
+              <h3>Substat modification gem</h3>
+              <div class="table-wrap">
+                <table class="ref-table">
+                  <thead>
+                    <tr><th>Target stat</th><th>Greater base roll</th><th>Lv 85 points</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>ATK / HP / DEF / EFF / ER %</td><td>4 – 8</td><td>8.00</td></tr>
+                    <tr><td>Speed</td><td>2 – 4</td><td>8.00</td></tr>
+                    <tr><td>Crit Damage</td><td>4 – 7</td><td>8.00</td></tr>
+                    <tr><td>Crit Chance <span class="muted">(excluded)</span></td><td>2 – 4</td><td>6.40</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <ul class="notes-list">
+                <li>Lv 85 only. <strong>Off</strong> excludes the gem; <strong>Same stat</strong> rerolls one substat into itself; <strong>Any stat</strong> also allows a stat not already on the gear.</li>
+                <li>Only a substat still at <strong>one base roll</strong> can be modded. If a roll lands on it, the sheet switches to another eligible substat.</li>
+                <li>Same-stat mods keep the higher value. Crit Chance is excluded as a target ("88 or lower" values are 1 lower).</li>
+                <li>Best-case reachability adds the gem's max points at every stage.</li>
               </ul>
             </article>
           </div>

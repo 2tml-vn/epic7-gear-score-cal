@@ -31,6 +31,7 @@
     plusThree: Object.fromEntries(STATS.map((stat) => [stat.key, []])),
     theme: "dark",
     view: "calculator",
+    modGemMode: "any",
   };
 
   const els = {
@@ -54,6 +55,7 @@
     scoreTarget: document.getElementById("score-target"),
     reachRows: document.getElementById("reach-rows"),
     reachNote: document.getElementById("reach-note"),
+    modGemControl: document.getElementById("mod-gem-control"),
     benchGrid: document.getElementById("bench-grid"),
     rollTarget: document.getElementById("roll-target"),
     rollValue: document.getElementById("roll-value"),
@@ -381,18 +383,46 @@
       .join("");
 
     const remaining = totalRolls(profile) - rollsAt(profile, stage);
+    let note;
     if (rows[0] && rows[0].state === "empty") {
-      els.reachNote.textContent = "Enter at least one substat to calculate best-case reachability. Benchmarks are shown for reference.";
+      note = "Enter at least one substat to calculate best-case reachability. Benchmarks are shown for reference.";
     } else if (remaining > 0) {
-      els.reachNote.textContent =
+      note =
         "Best-case = current score + " +
         profile.maxRollPoints +
         " points for each remaining roll (" +
         remaining +
         " to +15). A stage is reachable when its best-case score meets the benchmark.";
     } else {
-      els.reachNote.textContent = "This gear is at +15; no further upgrades remain.";
+      note = "This gear is at +15; no further upgrades remain.";
     }
+
+    const gemRow = rows
+      .slice()
+      .reverse()
+      .find(function (row) {
+        return row.gemPoints > 0;
+      });
+    const isEmpty = rows[0] && rows[0].state === "empty";
+    if (gemRow) {
+      const modeText = gemRow.gemMode === "same" ? "Same stat" : "Any stat";
+      note +=
+        " Includes +" +
+        fmt(gemRow.gemPoints) +
+        " pts from one Greater gem (" +
+        modeText +
+        " mode: " +
+        gemRow.gemSourceLabel +
+        " → " +
+        gemRow.gemTargetLabel +
+        " " +
+        fmt(gemRow.gemTargetValue) +
+        "); that substat was kept at 1 base roll.";
+    } else if (!isEmpty && profile.level === 85 && state.modGemMode !== "off") {
+      note +=
+        " No Greater gem gain: no eligible substat is still at 1 base roll or no valid target remains.";
+    }
+    els.reachNote.textContent = note;
   }
 
   function renderBenchmarks(profile, stage) {
@@ -437,6 +467,13 @@
     const finalRolls = totalRolls(profile);
 
     setSelected(els.levelControl, "level", state.level, false);
+
+    const modDisabled = profile.level !== 85;
+    els.modGemControl.querySelectorAll("button").forEach((btn) => {
+      btn.disabled = modDisabled;
+      btn.title = modDisabled ? "Mod gems only apply to Lv 85 gear" : "";
+    });
+    setSelected(els.modGemControl, "modGem", state.modGemMode, true);
 
     els.rarityControl.querySelectorAll("button").forEach((btn) => {
       const disabled = state.level === 88 && btn.dataset.rarity === "Heroic";
@@ -499,7 +536,15 @@
 
     syncAddRollControls(profile, displayStage, score);
     renderRollLog();
-    renderReach(buildReachability(profile, displayStage, score.total, hasStats), profile, displayStage);
+    renderReach(
+      buildReachability(profile, displayStage, score.total, hasStats, {
+        mode: state.modGemMode,
+        stats: state.stats,
+        plusThree: state.plusThree,
+      }),
+      profile,
+      displayStage
+    );
     renderBenchmarks(profile, displayStage);
   }
 
@@ -534,6 +579,7 @@
       ),
       theme: state.theme,
       view: state.view,
+      modGemMode: state.modGemMode,
     };
     try {
       const api = window.pywebview && window.pywebview.api;
@@ -585,6 +631,7 @@
     }
     if (saved.theme === "dark" || saved.theme === "light") state.theme = saved.theme;
     if (["calculator", "benchmarks", "reference"].indexOf(saved.view) !== -1) state.view = saved.view;
+    if (["off", "same", "any"].indexOf(saved.modGemMode) !== -1) state.modGemMode = saved.modGemMode;
     syncInputs();
   }
 
@@ -635,6 +682,14 @@
       }, 1200);
     }
   }
+
+  els.modGemControl.addEventListener("click", function (event) {
+    const btn = event.target.closest("button[data-mod-gem]");
+    if (!btn || btn.disabled) return;
+    state.modGemMode = btn.dataset.modGem;
+    render();
+    scheduleSave();
+  });
 
   els.levelControl.addEventListener("click", function (event) {
     const btn = event.target.closest("button[data-level]");

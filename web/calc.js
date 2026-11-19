@@ -45,6 +45,14 @@
     }),
   });
 
+  // Greater substat modification gem, base-roll values for gear item level 88 or lower.
+  // Crit Chance is deliberately absent: its mod value is 1 lower than a normal roll.
+  const GREATER_MOD_MAX = Object.freeze({
+    pct: 8,
+    spd: 4,
+    cd: 7,
+  });
+
   const L85_WEIGHTS = Object.freeze({
     atk: 1,
     hp: 1,
@@ -196,7 +204,65 @@
     });
   }
 
-  function buildReachability(profile, currentStage, currentScore, hasStats) {
+  // A Greater gem can only be used on a substat that still has its single base
+  // roll. Roll counts come from the +3 rolls already added to each substat, so
+  // a base roll that has received a roll is no longer a candidate. Remaining
+  // rolls in the projection are placed on the other existing substats so the
+  // chosen source stays at one base roll.
+  function bestGreaterModGain(mode, profile, stats, plusThree, remainingRolls) {
+    if (!profile || profile.level !== 85 || !mode || mode === "off") return null;
+    const values = stats || {};
+    const added = plusThree || {};
+
+    const existing = STATS.filter(function (stat) {
+      return parseValue(values[stat.key]) > 0;
+    });
+    if (!existing.length) return null;
+
+    const eligible = existing.filter(function (stat) {
+      const rolls = Array.isArray(added[stat.key]) ? added[stat.key] : [];
+      return rolls.length === 0;
+    });
+    if (!eligible.length) return null;
+
+    // The gem source has to stay at 1 roll, so every remaining roll needs a
+    // different existing substat to land on.
+    if (Number(remainingRolls) > 0 && existing.length < 2) return null;
+
+    // Targets must not already be on the gear (same stat is always allowed).
+    const emptyStats = STATS.filter(function (stat) {
+      return stat.key !== "cc" && parseValue(values[stat.key]) === 0;
+    });
+
+    let best = null;
+    eligible.forEach(function (source) {
+      const base = parseValue(values[source.key]);
+      const sourcePoints = base * profile.weights[source.key];
+      const targets = mode === "any" ? [source].concat(emptyStats) : [source];
+
+      targets.forEach(function (target) {
+        if (target.key === "cc") return;
+        const maxValue = GREATER_MOD_MAX[target.kind];
+        if (!maxValue) return;
+        const newValue =
+          target.key === source.key ? Math.max(base, maxValue) : maxValue;
+        const gain = newValue * profile.weights[target.key] - sourcePoints;
+        if (gain <= 1e-9) return;
+        if (best && gain <= best.points + 1e-9) return;
+        best = {
+          points: gain,
+          sourceKey: source.key,
+          sourceLabel: source.label + source.suffix,
+          targetKey: target.key,
+          targetLabel: target.label + target.suffix,
+          targetValue: newValue,
+        };
+      });
+    });
+    return best;
+  }
+
+  function buildReachability(profile, currentStage, currentScore, hasStats, modGem) {
     const currentRolls = rollsAt(profile, currentStage);
     const maxRollPoints = profile.maxRollPoints;
 
@@ -213,11 +279,24 @@
           remaining: 0,
           state: "past",
           reachable: null,
+          gemPoints: 0,
+          gemMode: modGem ? modGem.mode : "off",
         };
       }
 
       const remaining = rolls - currentRolls;
-      const bestCase = currentScore + remaining * maxRollPoints;
+      const gem =
+        hasStats && modGem
+          ? bestGreaterModGain(
+              modGem.mode,
+              profile,
+              modGem.stats,
+              modGem.plusThree,
+              remaining
+            )
+          : null;
+      const gemPoints = gem ? gem.points : 0;
+      const bestCase = currentScore + remaining * maxRollPoints + gemPoints;
 
       if (!hasStats) {
         return {
@@ -228,6 +307,8 @@
           remaining: remaining,
           state: "empty",
           reachable: null,
+          gemPoints: 0,
+          gemMode: modGem ? modGem.mode : "off",
         };
       }
 
@@ -249,6 +330,11 @@
         remaining: remaining,
         state: state,
         reachable: reachable,
+        gemPoints: gemPoints,
+        gemMode: modGem ? modGem.mode : "off",
+        gemSourceLabel: gem ? gem.sourceLabel : null,
+        gemTargetLabel: gem ? gem.targetLabel : null,
+        gemTargetValue: gem ? gem.targetValue : null,
       };
     });
   }
@@ -276,6 +362,8 @@
     STATS: STATS,
     PROFILES: PROFILES,
     ROLL_RANGES: ROLL_RANGES,
+    GREATER_MOD_MAX: GREATER_MOD_MAX,
+    bestGreaterModGain: bestGreaterModGain,
     getProfile: getProfile,
     rollsAt: rollsAt,
     totalRolls: totalRolls,

@@ -48,3 +48,17 @@ Stage  Rolls  Benchmark  Best-case  Result
 +9     7      56.28      60.56      Reachable
 +12    8      64.32      70.56      Reachable
 +15    9      72.36      80.56      Reachable
+
+
+EXAMPLE 5 — Lv85 Epic, +0, with the Any stat Greater mod gem enabled
+Input: ATK% 4, HP% 4, SPD 3, Crit Chance% 3 (all still at 1 base roll; CD empty)
+Score: 4 + 4 + 6 + 4.8 = 18.80
+Gem: best use is ATK% (4 pts) -> Crit Damage 7 (8 pts) = +4.00; ATK% stays at 1 base roll
+
+Stage  Rolls  Benchmark  Best-case  Result
++0     4      24.32      22.80      Below (current)
++3     5      30.40      30.80      Reachable
++6     6      36.48      38.80      Reachable
++9     7      42.56      46.80      Reachable
++12    8      48.64      54.80      Reachable
++15    9      54.72      62.80      Reachable
