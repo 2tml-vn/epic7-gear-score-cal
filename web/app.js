@@ -367,15 +367,27 @@
     els.reachRows.innerHTML = rows
       .map(function (row) {
         const isCurrent = row.stage === stage;
+        const hasGem = row.gemPoints > 0;
+        const raw = row.rawBestCase == null ? "—" : fmt(row.rawBestCase);
         const best = row.bestCase == null ? "—" : fmt(row.bestCase);
         const classes = [isCurrent ? "is-current" : "", row.state === "past" ? "is-past" : ""].filter(Boolean).join(" ");
-        const title = row.remaining > 0 ? row.remaining + " remaining roll(s)" : "no remaining rolls";
+        let title = row.remaining > 0 ? row.remaining + " remaining roll(s)" : "no remaining rolls";
+        if (row.bestCase != null) {
+          title = "Raw " + raw + (hasGem ? " + gem " + fmt(row.gemPoints) + " = " + best : "") + " · " + title;
+        }
+        const bestCell =
+          '<span class="best-stack">' +
+          '<span class="best-main">' + raw + "</span>" +
+          (hasGem
+            ? '<span class="best-gem">+' + fmt(row.gemPoints) + " gem → " + best + "</span>"
+            : "") +
+          "</span>";
         return (
           '<tr class="' + classes + '" data-stage="' + row.stage + '">' +
           "<td>" + formatStage(row.stage) + (isCurrent ? '<span class="now-tag">current</span>' : "") + "</td>" +
           "<td>" + row.rolls + "</td>" +
           "<td>" + fmt(row.benchmark) + "</td>" +
-          '<td title="' + title + '">' + best + "</td>" +
+          '<td title="' + title + '">' + bestCell + "</td>" +
           "<td>" + resultLabel(row) + "</td>" +
           "</tr>"
         );

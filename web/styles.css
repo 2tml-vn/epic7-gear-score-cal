@@ -1012,6 +1012,19 @@ html[data-theme="light"] .icon-sun {
   font-size: 9.5px;
 }
 
+.best-stack {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.25;
+}
+
+.best-gem {
+  color: var(--good);
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
 .panel-heading {
   display: flex;
   align-items: flex-start;

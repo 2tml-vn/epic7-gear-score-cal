@@ -237,8 +237,11 @@ test("reachability projects gem points into every stage of Lv85 gear", () => {
   const modGem = { mode: "any", stats: stats, plusThree: blankRolls() };
   const rows = buildReachability(p, 0, 14, true, modGem);
   assert.ok(rows.every((row) => row.gemPoints === 4));
-  assert.equal(rows[0].bestCase, 18); // 14 + 0 remaining rolls + 4
-  assert.equal(rows[5].bestCase, 58); // 14 + 5*8 + 4
+  assert.ok(rows.every((row) => Math.abs(row.rawBestCase + row.gemPoints - row.bestCase) < 1e-9));
+  assert.equal(rows[0].rawBestCase, 14); // no remaining rolls
+  assert.equal(rows[0].bestCase, 18); // 14 + 4 gem
+  assert.equal(rows[5].rawBestCase, 54); // 14 + 5*8
+  assert.equal(rows[5].bestCase, 58); // 54 + 4 gem
 });
 
 test("reachability with a gem leaves Lv88 and past stages untouched", () => {
@@ -249,6 +252,7 @@ test("reachability with a gem leaves Lv88 and past stages untouched", () => {
 
   const l88 = buildReachability(p88, 0, 14, true, modGem);
   assert.ok(l88.every((row) => row.gemPoints === 0));
+  assert.ok(l88.every((row) => row.rawBestCase === row.bestCase));
   assert.equal(l88[5].bestCase, 64); // 14 + 5*10
 
   const past = buildReachability(p85, 9, 14, true, modGem);

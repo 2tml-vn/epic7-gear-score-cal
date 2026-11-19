@@ -276,6 +276,7 @@
           rolls: rolls,
           benchmark: benchmark,
           bestCase: null,
+          rawBestCase: null,
           remaining: 0,
           state: "past",
           reachable: null,
@@ -296,7 +297,8 @@
             )
           : null;
       const gemPoints = gem ? gem.points : 0;
-      const bestCase = currentScore + remaining * maxRollPoints + gemPoints;
+      const rawBestCase = currentScore + remaining * maxRollPoints;
+      const bestCase = rawBestCase + gemPoints;
 
       if (!hasStats) {
         return {
@@ -304,6 +306,7 @@
           rolls: rolls,
           benchmark: benchmark,
           bestCase: null,
+          rawBestCase: null,
           remaining: remaining,
           state: "empty",
           reachable: null,
@@ -327,6 +330,7 @@
         rolls: rolls,
         benchmark: benchmark,
         bestCase: bestCase,
+        rawBestCase: rawBestCase,
         remaining: remaining,
         state: state,
         reachable: reachable,
