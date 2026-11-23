@@ -11,11 +11,11 @@
     { key: "atk", label: "ATK", suffix: "%", kind: "pct" },
     { key: "hp", label: "HP", suffix: "%", kind: "pct" },
     { key: "def", label: "DEF", suffix: "%", kind: "pct" },
+    { key: "eff", label: "EFFECTIVENESS", suffix: "%", kind: "pct" },
+    { key: "er", label: "EFFECT RESIST", suffix: "%", kind: "pct" },
     { key: "spd", label: "SPD", suffix: "", kind: "spd" },
     { key: "cc", label: "CRIT CHANCE", suffix: "%", kind: "cc" },
     { key: "cd", label: "CRIT DAMAGE", suffix: "%", kind: "cd" },
-    { key: "eff", label: "EFFECTIVENESS", suffix: "%", kind: "pct" },
-    { key: "er", label: "EFFECT RESIST", suffix: "%", kind: "pct" },
   ];
 
   // Single-roll ranges from the in-game reference table, keyed by gear profile and stat kind.

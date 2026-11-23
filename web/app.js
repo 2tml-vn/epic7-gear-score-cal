@@ -73,6 +73,7 @@
   let targetSignature = "";
   let valueSignature = "";
   let targetInputProfileKey = "";
+  let rowOrderSignature = null;
 
   function currentProfile() {
     return getProfile(state.level);
@@ -159,6 +160,65 @@
     return STATS.filter(function (stat) {
       return parseValue(state.stats[stat.key]) > 0;
     });
+  }
+
+  // Substats with a base value are grouped at the top, each group in the
+  // default STATS order. The arrangement is derived from state.stats, so it
+  // persists automatically with the saved base values.
+  function displayOrder() {
+    const withBase = baseSubstats();
+    const withBaseKeys = new Set(withBase.map(function (stat) {
+      return stat.key;
+    }));
+    const withoutBase = STATS.filter(function (stat) {
+      return !withBaseKeys.has(stat.key);
+    });
+    return withBase.concat(withoutBase);
+  }
+
+  // Move the existing rows (never rebuild them) so input state and focus are
+  // preserved. Only reorder when the set of base-valued stats actually changes.
+  function syncStatRowOrder() {
+    const order = displayOrder();
+    const signature = order
+      .map(function (stat) {
+        return stat.key;
+      })
+      .join(",");
+    if (signature === rowOrderSignature) return;
+    rowOrderSignature = signature;
+
+    const active = document.activeElement;
+    const restoreFocus = Boolean(
+      active && els.statRows.contains(active) && active.dataset && active.dataset.key
+    );
+    let selectionStart = null;
+    let selectionEnd = null;
+    if (restoreFocus && typeof active.selectionStart === "number") {
+      try {
+        selectionStart = active.selectionStart;
+        selectionEnd = active.selectionEnd;
+      } catch (err) {
+        selectionStart = null;
+        selectionEnd = null;
+      }
+    }
+
+    order.forEach(function (stat) {
+      const tr = els.statRows.querySelector('tr[data-stat="' + stat.key + '"]');
+      if (tr) els.statRows.appendChild(tr);
+    });
+
+    if (restoreFocus && document.contains(active)) {
+      active.focus();
+      if (selectionStart !== null) {
+        try {
+          active.setSelectionRange(selectionStart, selectionEnd);
+        } catch (err) {
+          // Some browsers reject selection ranges on number inputs.
+        }
+      }
+    }
   }
 
   function addEnhancementRoll(key, value) {
@@ -468,6 +528,7 @@
       lastProfileKey = profile.key;
     }
 
+    syncStatRowOrder();
     renderChips(profile);
     const effective = effectiveStats(state.stats, state.plusThree);
     const score = computeScore(profile, effective);
