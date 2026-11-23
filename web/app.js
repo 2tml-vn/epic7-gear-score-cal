@@ -24,7 +24,11 @@
 
   const state = {
     level: 85,
-    rarity: "Epic",
+    perRoll: Object.fromEntries(
+      Object.values(PROFILES).map(function (profile) {
+        return [profile.key, profile.perRoll];
+      })
+    ),
     stage: 0,
     stats: Object.fromEntries(STATS.map((stat) => [stat.key, ""])),
     plusThree: Object.fromEntries(STATS.map((stat) => [stat.key, []])),
@@ -40,7 +44,7 @@
     formulaText: document.getElementById("formula-text"),
     profileChip: document.getElementById("profile-chip"),
     levelControl: document.getElementById("level-control"),
-    rarityControl: document.getElementById("rarity-control"),
+    targetPerRoll: document.getElementById("target-per-roll"),
     enhanceControl: document.getElementById("enhance-control"),
     rollCount: document.getElementById("roll-count"),
     statRows: document.getElementById("stat-rows"),
@@ -68,9 +72,10 @@
   const chipSignatures = {};
   let targetSignature = "";
   let valueSignature = "";
+  let targetInputProfileKey = "";
 
   function currentProfile() {
-    return getProfile(state.level, state.rarity);
+    return getProfile(state.level);
   }
 
   function buildStatRows() {
@@ -277,21 +282,21 @@
   }
 
   function benchmarkSystem(profile) {
-    if (profile.key === "heroic85") return "8-system target";
-    if (profile.key === "epic88") return "10-point system";
-    return "8-point system";
+    return profile.key === "epic88" ? "10-point system" : "8-point system";
   }
 
   function buildBenchmarkCards() {
+    els.benchGrid.innerHTML = "";
     Object.values(PROFILES).forEach((profile) => {
-      const rows = buildBenchmarkTable(profile);
+      const target = state.perRoll[profile.key];
+      const rows = buildBenchmarkTable(profile, target);
       const card = document.createElement("article");
       card.className = "bench-card";
       card.dataset.profile = profile.key;
       card.innerHTML =
         '<div class="bench-card-head">' +
         "<div><span class=\"bench-kicker\">" + benchmarkSystem(profile) + "</span><h3>" + profile.label + "</h3></div>" +
-        '<span class="bench-badge">' + fmt(profile.perRoll) + " / roll</span>" +
+        '<span class="bench-badge">' + fmt(target) + " / roll</span>" +
         "</div>" +
         '<div class="bench-facts">' +
         "<span>" + profile.baseRolls + " base rolls</span>" +
@@ -480,20 +485,14 @@
     });
     setSelected(els.modGemControl, "modGem", state.modGemMode, true);
 
-    els.rarityControl.querySelectorAll("button").forEach((btn) => {
-      const disabled = state.level === 88 && btn.dataset.rarity === "Heroic";
-      btn.disabled = disabled;
-      btn.title = disabled ? "Lv 88 Heroic gear is not part of this model" : "";
-      if (disabled) {
-        btn.classList.remove("is-active");
-        btn.setAttribute("aria-pressed", "false");
-      }
-    });
-    setSelected(els.rarityControl, "rarity", state.rarity, true);
     setSelected(els.enhanceControl, "stage", displayStage, false);
 
     els.formulaText.textContent = formulaFor(state.level);
     els.profileChip.textContent = profile.label;
+    if (profile.key !== targetInputProfileKey || document.activeElement !== els.targetPerRoll) {
+      targetInputProfileKey = profile.key;
+      els.targetPerRoll.value = String(state.perRoll[profile.key]);
+    }
     els.rollCount.textContent = currentRolls + " / " + finalRolls;
 
     score.rows.forEach((row) => {
@@ -534,14 +533,22 @@
     syncAddRollControls(profile, displayStage, score);
     renderRollLog();
     renderReach(
-      buildReachability(profile, displayStage, score.total, hasStats, {
-        mode: state.modGemMode,
-        stats: state.stats,
-        plusThree: state.plusThree,
-      }),
+      buildReachability(
+        profile,
+        displayStage,
+        score.total,
+        hasStats,
+        {
+          mode: state.modGemMode,
+          stats: state.stats,
+          plusThree: state.plusThree,
+        },
+        state.perRoll[profile.key]
+      ),
       profile,
       displayStage
     );
+    buildBenchmarkCards();
     renderBenchmarks(profile, displayStage);
   }
 
@@ -566,7 +573,7 @@
     const payload = {
       version: 1,
       level: state.level,
-      rarity: state.rarity,
+      perRoll: Object.assign({}, state.perRoll),
       stage: state.stage,
       stats: Object.assign({}, state.stats),
       plusThree: Object.fromEntries(
@@ -602,8 +609,12 @@
     if (!saved || typeof saved !== "object") return;
     const lv = Number(saved.level);
     if (lv === 85 || lv === 88) state.level = lv;
-    if (saved.rarity === "Epic" || saved.rarity === "Heroic") state.rarity = saved.rarity;
-    if (state.level === 88) state.rarity = "Epic";
+    if (saved.perRoll && typeof saved.perRoll === "object") {
+      Object.values(PROFILES).forEach(function (profile) {
+        const n = Number(saved.perRoll[profile.key]);
+        if (Number.isFinite(n) && n > 0) state.perRoll[profile.key] = n;
+      });
+    }
     const st = Number(saved.stage);
     if (STAGES.includes(st)) state.stage = st;
     if (saved.stats && typeof saved.stats === "object") {
@@ -662,7 +673,6 @@
 
   function init() {
     buildStatRows();
-    buildBenchmarkCards();
     applyTheme();
     render();
     renderTabs();
@@ -692,17 +702,23 @@
     const btn = event.target.closest("button[data-level]");
     if (!btn || btn.disabled) return;
     state.level = Number(btn.dataset.level);
-    if (state.level === 88) state.rarity = "Epic";
     render();
     scheduleSave();
   });
 
-  els.rarityControl.addEventListener("click", function (event) {
-    const btn = event.target.closest("button[data-rarity]");
-    if (!btn || btn.disabled) return;
-    state.rarity = btn.dataset.rarity;
+  els.targetPerRoll.addEventListener("input", function (event) {
+    const n = Number(event.target.value);
+    const profile = currentProfile();
+    if (profile && event.target.value !== "" && Number.isFinite(n) && n > 0) {
+      state.perRoll[profile.key] = n;
+    }
     render();
     scheduleSave();
+  });
+
+  els.targetPerRoll.addEventListener("change", function () {
+    const profile = currentProfile();
+    if (profile) els.targetPerRoll.value = String(state.perRoll[profile.key]);
   });
 
   els.enhanceControl.addEventListener("click", function (event) {

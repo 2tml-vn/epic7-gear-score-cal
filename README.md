@@ -5,11 +5,10 @@ A portable, offline Windows app that calculates Epic Seven gear scores and check
 ## What it does
 
 **Inputs**
-- Gear level: 85 or 88
-- Rarity: Epic or Heroic (Lv 88 is Epic only)
+- Gear level: 85 or 88 (Epic only)
 - Enhancement: `+0`, `+3`, `+6`, `+9`, `+12`, `+15`
 - Substats: ATK%, HP%, DEF%, SPD, Crit Chance%, Crit Damage%, Effectiveness%, Effect Resist%
-- Each substat has a dropdown of valid single-roll values for the gear profile (e.g. 4–8% for Lv 85 ATK%). SPD ranges are 2–5 for Lv 85 Epic (5 is rare), 1–4 for Lv 85 Heroic (1 is rare), and 3–5 for Lv 88 Epic. Typing a value directly is still allowed.
+- Each substat has a dropdown of valid single-roll values for the gear profile (e.g. 4–8% for Lv 85 ATK%). SPD ranges are 2–5 for Lv 85 Epic (5 is rare) and 3–5 for Lv 88 Epic. Typing a value directly is still allowed.
 - An **Add enhancement roll** box lets you pick a **substat** and a **roll value**, then add the roll. The substat list contains only stats that already have a base value (the 3 or 4 substats the gear rolled with). Each add leaves the base untouched, advances the enhancement level by `+3` and the roll count by one, and updates the score immediately. Added rolls are listed with remove buttons; the row also shows `base → total`.
 - Each added roll advances the displayed enhancement level by `+3` and the roll count by one (capped at `+15`). Changing the Enhance buttons rebalances the added rolls to match the selected stage.
 - The substat grid has three columns — **Substat**, **Value + Rolls** (base picker, custom value, `+3` chips, and `base → total`), and **Points** — with the total gear score in the footer.
@@ -18,7 +17,7 @@ Flat ATK / HP / DEF, main stats, and set bonuses are ignored entirely.
 
 **Score**
 
-Level 85 uses the 8-point system. Epic and Heroic share the same formula:
+Level 85 uses the 8-point system:
 
 ```
 Score = ATK% + HP% + DEF% + EFF% + ER%
@@ -36,15 +35,16 @@ Score = (ATK% + HP% + DEF% + EFF% + ER%) × 10/9
       + Crit Damage% × 10/8
 ```
 
-The extended SPD rolls use the normal SPD weight: a 5-speed roll on Lv 85 Epic is worth 10 points, and a 1-speed roll on Lv 85 Heroic is worth 2 points. Reachability projections deliberately keep using the standard 8-point maximum for Lv 85 gear (see below).
+The extended 5-speed roll on Lv 85 Epic uses the normal SPD weight and is worth 10 points. Reachability projections deliberately keep using the standard 8-point maximum for Lv 85 gear (see below).
 
 **Benchmarks** are cumulative targets, `rolls at stage × target per roll`:
 
 | Profile | Target / roll | Rolls at +0 → +15 | +15 benchmark |
 |---|---:|---:|---:|
 | Lv 85 Epic | 6.08 | 4 → 9 | 54.72 |
-| Lv 85 Heroic | 7.04 | 3 → 8 | 56.32 |
 | Lv 88 Epic | 8.04 | 4 → 9 | 72.36 |
+
+The **Target / roll** box in the setup bar edits the benchmark target for the currently selected profile. Each profile keeps its own value (defaults: 6.08 for Lv 85 Epic, 8.04 for Lv 88 Epic), and the value is saved with the rest of the app state. It changes benchmarks and reachability comparisons only — scoring weights and the 8/10-point maximum roll are unaffected. An empty or non-positive value falls back to the default.
 
 **Reachability** is the stage-by-stage calculation. For each enhancement stage:
 

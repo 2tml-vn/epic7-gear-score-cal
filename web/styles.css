@@ -310,6 +310,32 @@ html[data-theme="light"] .icon-sun {
   color: var(--muted);
 }
 
+.target-input {
+  width: 84px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  outline: 0;
+  background: var(--panel-2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.target-input::-webkit-outer-spin-button,
+.target-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.target-input:focus {
+  border-color: var(--accent);
+  background: var(--panel-3);
+}
+
 .segmented {
   display: flex;
   border: 1px solid var(--line);

@@ -24,17 +24,17 @@ Stage  Rolls  Benchmark  Best-case  Result
 +15    9      54.72      50.00      Not reachable
 
 
-EXAMPLE 3 — Lv85 Heroic, entered at +9
-Input: ATK% 18, HP% 6, Crit Chance% 8, Crit Damage% 12, SPD 3 at +9 (6 rolls)
+EXAMPLE 3 — Lv85 Epic, entered at +9
+Input: ATK% 14, HP% 6, Crit Chance% 8, Crit Damage% 12, SPD 3 at +9 (7 rolls)
 Score: 56.51 (max-roll piece)
 
 Stage  Rolls  Benchmark  Best-case  Result
-+0     3      21.12      --         --
-+3     4      28.16      --         --
-+6     5      35.20      --         --
-+9     6      42.24      56.51      Met (current)
-+12    7      49.28      64.51      Reachable
-+15    8      56.32      72.51      Reachable
++0     4      24.32      --         --
++3     5      30.40      --         --
++6     6      36.48      --         --
++9     7      42.56      56.51      Met (current)
++12    8      48.64      64.51      Reachable
++15    9      54.72      72.51      Reachable
 
 
 EXAMPLE 4 — Lv88 Epic, average-ish average rolls at +0

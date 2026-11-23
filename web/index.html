@@ -43,11 +43,8 @@
               </div>
             </div>
             <div class="setup-group">
-              <span class="setup-label">Rarity</span>
-              <div class="segmented" id="rarity-control" role="group" aria-label="Gear rarity">
-                <button type="button" data-rarity="Epic" class="is-active" aria-pressed="true">Epic</button>
-                <button type="button" data-rarity="Heroic" aria-pressed="false">Heroic</button>
-              </div>
+              <label class="setup-label" for="target-per-roll">Target / roll</label>
+              <input id="target-per-roll" class="target-input" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Benchmark target per roll for this gear profile" />
             </div>
             <div class="setup-group">
               <span class="setup-label">Enhance</span>
@@ -209,21 +206,21 @@
             <article class="sheet-panel reference-card">
               <h3>Score formulas</h3>
               <div class="formula-block">
-                <span class="formula-tag">Lv 85 · Epic &amp; Heroic</span>
+                <span class="formula-tag">Lv 85 · Epic</span>
                 <code>ATK% + HP% + DEF% + EFF% + ER% + SPD×2 + CC%×1.6 + CD%×(8/7)</code>
               </div>
               <div class="formula-block">
                 <span class="formula-tag">Lv 88 · Epic</span>
                 <code>(ATK% + HP% + DEF% + EFF% + ER%)×10/9 + SPD×2 + CC%×10/6 + CD%×10/8</code>
               </div>
-              <p class="hint">Level 85 uses the 8-point system; Level 88 uses the 10-point system. Rarity changes the target, not the formula.</p>
+              <p class="hint">Level 85 uses the 8-point system; Level 88 uses the 10-point system. Both are Epic only; the target per roll is adjustable in the setup bar.</p>
             </article>
 
             <article class="sheet-panel reference-card">
               <h3>How the numbers are built</h3>
               <ul class="notes-list">
-                <li><strong>Rolls</strong> = base rolls + enhancement ÷ 3. Epic starts with 4 rolls, Heroic with 3.</li>
-                <li><strong>Benchmark</strong> = rolls × target per roll (6.08 / 7.04 / 8.04).</li>
+                <li><strong>Rolls</strong> = base rolls + enhancement ÷ 3. Epic starts with 4 rolls.</li>
+                <li><strong>Benchmark</strong> = rolls × target per roll (6.08 / 8.04 by default; adjustable per profile).</li>
                 <li><strong>Max roll value</strong> = 8 points on Lv 85, 10 points on Lv 88 — every non-flat stat.</li>
                 <li><strong>Reachability</strong> = current score + remaining rolls × max roll value ≥ benchmark.</li>
                 <li>The Lv 85 average: <code>(5×6.00 + 6.00 + 6.29 + 6.40) ÷ 8 = 6.0857 ≈ 6.08</code>.</li>

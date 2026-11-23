@@ -19,7 +19,6 @@
   ];
 
   // Single-roll ranges from the in-game reference table, keyed by gear profile and stat kind.
-  // SPD is the one range that differs between Lv 85 Epic and Heroic gear.
   const L85_COMMON_RANGES = Object.freeze({
     pct: Object.freeze({ min: 4, max: 8 }),
     cc: Object.freeze({ min: 3, max: 5 }),
@@ -30,11 +29,6 @@
     epic85: Object.freeze(
       Object.assign({}, L85_COMMON_RANGES, {
         spd: Object.freeze({ min: 2, max: 5 }), // 5 is rare
-      })
-    ),
-    heroic85: Object.freeze(
-      Object.assign({}, L85_COMMON_RANGES, {
-        spd: Object.freeze({ min: 1, max: 4 }), // 1 is rare
       })
     ),
     epic88: Object.freeze({
@@ -87,17 +81,6 @@
       system: "8-point",
       weights: L85_WEIGHTS,
     }),
-    heroic85: Object.freeze({
-      key: "heroic85",
-      level: 85,
-      rarity: "Heroic",
-      label: "Lv 85 Heroic",
-      baseRolls: 3,
-      perRoll: 7.04,
-      maxRollPoints: 8,
-      system: "8-system",
-      weights: L85_WEIGHTS,
-    }),
     epic88: Object.freeze({
       key: "epic88",
       level: 88,
@@ -111,11 +94,10 @@
     }),
   });
 
-  function getProfile(level, rarity) {
+  function getProfile(level) {
     const lv = Number(level);
-    const rar = String(rarity || "").toLowerCase();
-    if (lv === 88) return rar === "epic" ? PROFILES.epic88 : null;
-    if (lv === 85) return rar === "heroic" ? PROFILES.heroic85 : PROFILES.epic85;
+    if (lv === 88) return PROFILES.epic88;
+    if (lv === 85) return PROFILES.epic85;
     return null;
   }
 
@@ -191,15 +173,23 @@
     return { total: total, rows: rows };
   }
 
-  function buildBenchmarkTable(profile) {
+  // The target per roll is user-adjustable; an invalid override falls back to
+  // the profile's reference value. PROFILES is frozen and never mutated.
+  function resolvePerRoll(profile, perRoll) {
+    const n = Number(perRoll);
+    return Number.isFinite(n) && n > 0 ? n : profile.perRoll;
+  }
+
+  function buildBenchmarkTable(profile, perRoll) {
+    const target = resolvePerRoll(profile, perRoll);
     return STAGES.map(function (stage) {
       const rolls = rollsAt(profile, stage);
-      const benchmark = rolls * profile.perRoll;
+      const benchmark = rolls * target;
       return {
         stage: stage,
         rolls: rolls,
         benchmark: benchmark,
-        formula: rolls + " × " + profile.perRoll.toFixed(2),
+        formula: rolls + " × " + target.toFixed(2),
       };
     });
   }
@@ -265,13 +255,14 @@
     return best;
   }
 
-  function buildReachability(profile, currentStage, currentScore, hasStats, modGem) {
+  function buildReachability(profile, currentStage, currentScore, hasStats, modGem, perRoll) {
     const currentRolls = rollsAt(profile, currentStage);
     const maxRollPoints = profile.maxRollPoints;
+    const target = resolvePerRoll(profile, perRoll);
 
     return STAGES.map(function (stage) {
       const rolls = rollsAt(profile, stage);
-      const benchmark = rolls * profile.perRoll;
+      const benchmark = rolls * target;
 
       if (stage < currentStage) {
         return {
@@ -385,6 +376,7 @@
     computeScore: computeScore,
     buildBenchmarkTable: buildBenchmarkTable,
     buildReachability: buildReachability,
+    resolvePerRoll: resolvePerRoll,
     round2: round2,
     fmt: fmt,
     weightLabel: weightLabel,
