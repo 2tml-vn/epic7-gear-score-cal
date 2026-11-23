@@ -32,6 +32,7 @@
     stage: 0,
     stats: Object.fromEntries(STATS.map((stat) => [stat.key, ""])),
     plusThree: Object.fromEntries(STATS.map((stat) => [stat.key, []])),
+    baseOrder: [],
     theme: "dark",
     view: "calculator",
     modGemMode: "any",
@@ -155,16 +156,55 @@
     }
   }
 
-  // Only substats that already have a base value can receive enhancement rolls.
+  // Substats with a base value, in the order their base value was first set.
+  // This is also the order used by the Add enhancement roll dropdown.
   function baseSubstats() {
-    return STATS.filter(function (stat) {
-      return parseValue(state.stats[stat.key]) > 0;
-    });
+    return state.baseOrder
+      .map(function (key) {
+        return STATS.find(function (stat) {
+          return stat.key === key;
+        });
+      })
+      .filter(function (stat) {
+        return stat && parseValue(state.stats[stat.key]) > 0;
+      });
   }
 
-  // Substats with a base value are grouped at the top, each group in the
-  // default STATS order. The arrangement is derived from state.stats, so it
-  // persists automatically with the saved base values.
+  // A base value appearing appends the stat; clearing it removes the stat so
+  // re-entering it later puts it at the bottom of the group.
+  function updateBaseOrder(key, value) {
+    const index = state.baseOrder.indexOf(key);
+    if (parseValue(value) > 0) {
+      if (index === -1) state.baseOrder.push(key);
+    } else if (index !== -1) {
+      state.baseOrder.splice(index, 1);
+    }
+  }
+
+  // Rebuild a valid order from a saved payload. Older saves have no baseOrder,
+  // so any base-valued stat missing from it is added in default order.
+  function normalizeBaseOrder(order, stats) {
+    const seen = new Set();
+    const keys = [];
+    (Array.isArray(order) ? order : []).forEach(function (key) {
+      const stat = STATS.find(function (s) {
+        return s.key === key;
+      });
+      if (stat && !seen.has(key) && parseValue(stats[key]) > 0) {
+        seen.add(key);
+        keys.push(key);
+      }
+    });
+    STATS.forEach(function (stat) {
+      if (parseValue(stats[stat.key]) > 0 && !seen.has(stat.key)) {
+        seen.add(stat.key);
+        keys.push(stat.key);
+      }
+    });
+    return keys;
+  }
+
+  // Base-valued substats first in entry order, empty ones below in default order.
   function displayOrder() {
     const withBase = baseSubstats();
     const withBaseKeys = new Set(withBase.map(function (stat) {
@@ -637,6 +677,7 @@
       perRoll: Object.assign({}, state.perRoll),
       stage: state.stage,
       stats: Object.assign({}, state.stats),
+      baseOrder: state.baseOrder.slice(),
       plusThree: Object.fromEntries(
         STATS.map(function (stat) {
           return [stat.key, state.plusThree[stat.key].slice()];
@@ -684,6 +725,7 @@
         state.stats[stat.key] = value == null ? "" : String(value);
       });
     }
+    state.baseOrder = normalizeBaseOrder(saved.baseOrder, state.stats);
     if (saved.plusThree && typeof saved.plusThree === "object") {
       STATS.forEach(function (stat) {
         const entry = saved.plusThree[stat.key];
@@ -806,6 +848,7 @@
     const input = event.target.closest("input[data-key]");
     if (!input) return;
     state.stats[input.dataset.key] = input.value;
+    updateBaseOrder(input.dataset.key, input.value);
     render();
     scheduleSave();
   });
@@ -814,6 +857,7 @@
     const base = event.target.closest('select[data-role="base-roll"]');
     if (base) {
       state.stats[base.dataset.key] = base.value;
+      updateBaseOrder(base.dataset.key, base.value);
       syncInputs();
       render();
       scheduleSave();
@@ -888,6 +932,7 @@
       state.stats[stat.key] = "";
       state.plusThree[stat.key] = [];
     });
+    state.baseOrder = [];
     syncInputs();
     render();
     scheduleSave();
