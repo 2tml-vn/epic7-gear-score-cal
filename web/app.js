@@ -486,7 +486,9 @@
           '<tr class="' + classes + '" data-stage="' + row.stage + '">' +
           "<td>" + formatStage(row.stage) + (isCurrent ? '<span class="now-tag">current</span>' : "") + "</td>" +
           "<td>" + row.rolls + "</td>" +
-          "<td>" + fmt(row.benchmark) + "</td>" +
+          '<td title="' + (penalty > 0
+            ? "Target " + fmt(row.benchmark + penalty) + " − " + fmt(penalty) + " flat deduction"
+            : "") + '">' + fmt(row.benchmark) + "</td>" +
           '<td title="' + title + '">' + bestCell + "</td>" +
           "<td>" + resultLabel(row) + "</td>" +
           "</tr>"
@@ -512,7 +514,8 @@
       note = "This gear is at +15; no further upgrades remain.";
     }
     if (penalty > 0) {
-      note += " The flat stat deduction of " + fmt(penalty) + " pts is already included; benchmarks are unchanged.";
+      note += " The flat stat deduction of " + fmt(penalty) +
+        " pts is applied to both the current score and every Bench value.";
     }
     els.reachNote.textContent = note;
 

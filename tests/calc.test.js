@@ -332,17 +332,41 @@ test("flat stats deduct the target per roll on Lv85 only", () => {
   assert.equal(l88.rawTotal, l88.total);
 });
 
-test("flat penalty reduces best-case at every stage without changing benchmarks", () => {
+test("flat penalty is deducted from the Bench column and changes the verdict", () => {
   const p = getProfile(85);
   const stats = Object.assign(blankStats(), { atk: 8, spd: 4 });
-  const score = computeScore(p, stats, 2);
-  const rows = buildReachability(p, 0, score.total, true, null, undefined, 2);
-  const plain = buildReachability(p, 0, score.rawTotal, true);
+  const score = computeScore(p, stats, 2); // raw 16, penalty 12.16, total 3.84
+  assert.equal(score.rawTotal, 16);
+  assert.equal(round2(score.penalty), 12.16);
+  assert.equal(round2(score.total), 3.84);
 
-  assert.equal(rows[0].benchmark, plain[0].benchmark);
-  assert.equal(rows[5].benchmark, plain[5].benchmark);
-  assert.equal(round2(rows[0].bestCase), round2(plain[0].bestCase - 12.16));
-  assert.equal(round2(rows[5].bestCase), round2(plain[5].bestCase - 12.16));
+  const flat = buildReachability(p, 0, score.total, true, null, undefined, 2);
+  assert.deepEqual(
+    flat.map((row) => round2(row.benchmark)),
+    [12.16, 18.24, 24.32, 30.4, 36.48, 42.56]
+  );
+
+  // With an unchanged Bench, +15 would be 43.84 < 54.72 → not reachable.
+  const unchanged = buildReachability(p, 0, score.total, true);
+  assert.equal(unchanged[5].benchmark, 54.72);
+  assert.equal(unchanged[5].bestCase, flat[5].bestCase);
+  assert.equal(unchanged[5].reachable, false);
+
+  assert.equal(round2(flat[5].bestCase), 43.84);
+  assert.equal(flat[5].reachable, true);
+  assert.equal(flat[5].state, "reachable");
+
+  // Past stages show the reduced Bench too.
+  const past = buildReachability(p, 9, score.total, true, null, undefined, 2);
+  assert.equal(round2(past[0].benchmark), 12.16);
+  assert.equal(past[0].state, "past");
+
+  // A gear with no flats keeps the original benchmark table.
+  const plain = buildReachability(p, 0, score.rawTotal, true);
+  assert.deepEqual(
+    plain.map((row) => round2(row.benchmark)),
+    [24.32, 30.4, 36.48, 42.56, 48.64, 54.72]
+  );
 });
 
 test("flat stats disable the mod gem in reachability", () => {

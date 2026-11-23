@@ -43,7 +43,13 @@ The extended 5-speed roll on Lv 85 Epic uses the normal SPD weight and is worth 
 Total = weighted substat sum − Target / roll × number of flat stats
 ```
 
-With the default 6.08 target, two flats deduct 12.16. Changing **Target / roll** rescales the deduction. The reduced total is also the starting point for reachability, so best-case scores drop by the same amount at every stage; benchmark targets are unchanged. Lv 88 Epic ignores the flat count. A gear has at most four substat slots, so an error is shown when `flat count + base-valued percentage stats > 4` (the score is still calculated).
+With the default 6.08 target, two flats deduct 12.16. Changing **Target / roll** rescales the deduction. In reachability, the same deduction is applied to the **Bench** value at every stage:
+
+```
+Bench = rolls × Target / roll − Target / roll × number of flat stats
+```
+
+The reduced total is the starting point for best-case scores and the reduced Bench is what they are compared against, so both sides drop by the same amount. Lv 88 Epic ignores the flat count. A gear has at most four substat slots, so an error is shown when `flat count + base-valued percentage stats > 4` (the score is still calculated).
 
 **Benchmarks** are cumulative targets, `rolls at stage × target per roll`:
 

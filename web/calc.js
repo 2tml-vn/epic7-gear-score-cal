@@ -298,11 +298,13 @@
     const currentRolls = rollsAt(profile, currentStage);
     const maxRollPoints = profile.maxRollPoints;
     const target = resolvePerRoll(profile, perRoll);
+    const flatPenalty = resolveFlatPenalty(profile, flatCount, perRoll);
     const gemBlocked = normalizeFlatCount(flatCount) > 0;
 
     return STAGES.map(function (stage) {
       const rolls = rollsAt(profile, stage);
-      const benchmark = rolls * target;
+      // Flat stats lower both the score and the target by the same amount.
+      const benchmark = rolls * target - flatPenalty;
 
       if (stage < currentStage) {
         return {
