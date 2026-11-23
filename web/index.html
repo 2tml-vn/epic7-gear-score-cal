@@ -46,6 +46,16 @@
               <label class="setup-label" for="target-per-roll">Target / roll</label>
               <input id="target-per-roll" class="target-input" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Benchmark target per roll for this gear profile" />
             </div>
+            <div class="setup-group flat-group">
+              <span class="setup-label" id="flat-label">Flat stats <span class="muted">· Lv 85</span></span>
+              <div class="segmented flat-control" id="flat-control" role="group" aria-labelledby="flat-label">
+                <button type="button" data-flat="0" class="is-active" aria-pressed="true">0</button>
+                <button type="button" data-flat="1" aria-pressed="false">1</button>
+                <button type="button" data-flat="2" aria-pressed="false">2</button>
+                <button type="button" data-flat="3" aria-pressed="false">3</button>
+              </div>
+              <p id="flat-error" class="flat-error" hidden></p>
+            </div>
             <div class="setup-group">
               <span class="setup-label">Enhance</span>
               <div class="segmented" id="enhance-control" role="group" aria-label="Enhancement level">
@@ -116,7 +126,8 @@
                   </tfoot>
                 </table>
               </div>
-              <p class="hint">Pick a valid single roll from <strong>BASE</strong>, or type any value. Add <code>+3</code> rolls with the box above; they only land on substats with a base value. The row shows <code>base → total</code>. Flat stats, main stats, and set bonuses are ignored.</p>
+              <p id="flat-note" class="flat-note" hidden></p>
+              <p class="hint">Pick a valid single roll from <strong>BASE</strong>, or type any value. Add <code>+3</code> rolls with the box above; they only land on substats with a base value. The row shows <code>base → total</code>. On Lv 85, each flat ATK / HP / DEF set in the setup bar deducts one Target / roll. Main stats and set bonuses are ignored.</p>
             </div>
 
             <div class="side-column">
@@ -180,7 +191,7 @@
                     <tr><td>SPD</td><td>2.000</td><td>2.000</td><td>8.00</td><td>10.00</td></tr>
                     <tr><td>Crit Chance %</td><td>1.600</td><td>1.667</td><td>8.00</td><td>10.00</td></tr>
                     <tr><td>Crit Damage %</td><td>1.143 <span class="muted">(8/7)</span></td><td>1.250 <span class="muted">(10/8)</span></td><td>8.00</td><td>10.00</td></tr>
-                    <tr><td>Flat ATK / HP / DEF</td><td colspan="4" class="muted">Ignored entirely — 0 points</td></tr>
+                    <tr><td>Flat ATK / HP / DEF</td><td colspan="4" class="muted">Lv 85 only: each flat stat deducts one Target / roll from the total</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -225,7 +236,7 @@
                 <li><strong>Reachability</strong> = current score + remaining rolls × max roll value ≥ benchmark.</li>
                 <li>The Lv 85 average: <code>(5×6.00 + 6.00 + 6.29 + 6.40) ÷ 8 = 6.0857 ≈ 6.08</code>.</li>
                 <li>The Lv 88 target of 8.04 is the calibrated 10-point-system average per roll.</li>
-                <li>Main stats, set bonuses, and flat stats are not part of the score.</li>
+                <li>Main stats and set bonuses are not part of the score. On Lv 85, each flat ATK / HP / DEF deducts one target per roll (default 6.08); Lv 88 ignores flats.</li>
               </ul>
             </article>
 
@@ -249,6 +260,7 @@
                 <li>Only a substat still at <strong>one base roll</strong> can be modded. If a roll lands on it, the sheet switches to another eligible substat.</li>
                 <li>Same-stat mods keep the higher value. Crit Chance is excluded as a target ("88 or lower" values are 1 lower).</li>
                 <li>Best-case reachability adds the gem's max points at every stage.</li>
+                <li>Gear with flat stats cannot use a mod gem; gem points are zero at every stage.</li>
               </ul>
             </article>
           </div>

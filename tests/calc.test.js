@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const calc = require("../web/calc.js");
 
-const { getProfile, rollsAt, totalRolls, computeScore, rollOptions, effectiveStats, countPlusThree, effectiveStage, buildBenchmarkTable, buildReachability, bestGreaterModGain, GREATER_MOD_MAX, round2 } = calc;
+const { getProfile, rollsAt, totalRolls, computeScore, rollOptions, effectiveStats, countPlusThree, effectiveStage, buildBenchmarkTable, buildReachability, bestGreaterModGain, normalizeFlatCount, resolveFlatPenalty, substatOverflow, GREATER_MOD_MAX, round2 } = calc;
 
 function benchmarks(profile, perRoll) {
   return buildBenchmarkTable(profile, perRoll).map((row) => round2(row.benchmark));
@@ -287,4 +287,84 @@ test("reachability with a gem leaves Lv88 and past stages untouched", () => {
   assert.equal(past[0].gemPoints, 0);
   assert.equal(past[0].bestCase, null);
   assert.equal(past[5].bestCase, 34); // 14 + 2*8 + 4
+});
+
+test("flat count is clamped to an integer from 0 to 3", () => {
+  assert.equal(normalizeFlatCount(undefined), 0);
+  assert.equal(normalizeFlatCount(null), 0);
+  assert.equal(normalizeFlatCount("abc"), 0);
+  assert.equal(normalizeFlatCount(-2), 0);
+  assert.equal(normalizeFlatCount(2.9), 2);
+  assert.equal(normalizeFlatCount(7), 3);
+  assert.equal(normalizeFlatCount("3"), 3);
+});
+
+test("flat stats deduct the target per roll on Lv85 only", () => {
+  const p85 = getProfile(85);
+  const p88 = getProfile(88);
+  const stats = Object.assign(blankStats(), { atk: 8, spd: 4 });
+  const raw = computeScore(p85, stats).total; // 8 + 4*2 = 16
+  assert.equal(raw, 16);
+
+  const one = computeScore(p85, stats, 1);
+  assert.equal(one.penalty, 6.08);
+  assert.equal(round2(one.total), 9.92);
+  assert.equal(one.rawTotal, 16);
+
+  const two = computeScore(p85, stats, 2);
+  assert.equal(round2(two.penalty), 12.16);
+  assert.equal(round2(two.total), 3.84);
+
+  assert.equal(computeScore(p85, stats, 0).penalty, 0);
+  assert.equal(computeScore(p85, stats, 0).total, raw);
+
+  // A custom Target / roll scales the deduction; scores may go negative.
+  const adjusted = computeScore(p85, stats, 3, 7);
+  assert.equal(adjusted.penalty, 21);
+  assert.equal(adjusted.total, -5);
+
+  // Invalid overrides fall back to the Lv85 default of 6.08.
+  assert.equal(round2(computeScore(p85, stats, 2, 0).penalty), 12.16);
+
+  // Lv88 Epic ignores flats entirely.
+  const l88 = computeScore(p88, stats, 3, 8.04);
+  assert.equal(l88.penalty, 0);
+  assert.equal(l88.rawTotal, l88.total);
+});
+
+test("flat penalty reduces best-case at every stage without changing benchmarks", () => {
+  const p = getProfile(85);
+  const stats = Object.assign(blankStats(), { atk: 8, spd: 4 });
+  const score = computeScore(p, stats, 2);
+  const rows = buildReachability(p, 0, score.total, true, null, undefined, 2);
+  const plain = buildReachability(p, 0, score.rawTotal, true);
+
+  assert.equal(rows[0].benchmark, plain[0].benchmark);
+  assert.equal(rows[5].benchmark, plain[5].benchmark);
+  assert.equal(round2(rows[0].bestCase), round2(plain[0].bestCase - 12.16));
+  assert.equal(round2(rows[5].bestCase), round2(plain[5].bestCase - 12.16));
+});
+
+test("flat stats disable the mod gem in reachability", () => {
+  const p = getProfile(85);
+  const stats = Object.assign(blankStats(), { atk: 4, hp: 4, spd: 3 });
+  const modGem = { mode: "any", stats: stats, plusThree: blankRolls() };
+
+  const withFlats = buildReachability(p, 0, 14, true, modGem, undefined, 1);
+  assert.ok(withFlats.every((row) => row.gemPoints === 0));
+  assert.ok(withFlats.every((row) => row.bestCase === row.rawBestCase));
+
+  const noFlats = buildReachability(p, 0, 14, true, modGem, undefined, 0);
+  assert.equal(noFlats[5].gemPoints, 4);
+});
+
+test("substat slot overflow is reported but does not block scoring", () => {
+  const threeBase = Object.assign(blankStats(), { atk: 4, hp: 5, spd: 3 });
+  assert.equal(substatOverflow(1, threeBase), null); // exactly four slots
+  assert.deepEqual(substatOverflow(3, threeBase), { flats: 3, base: 3, total: 6, max: 4 });
+  assert.equal(substatOverflow(0, threeBase), null);
+  assert.equal(substatOverflow(2, blankStats()), null);
+
+  // The calculation still runs with an invalid combination.
+  assert.ok(computeScore(getProfile(85), threeBase, 3).total < 0);
 });

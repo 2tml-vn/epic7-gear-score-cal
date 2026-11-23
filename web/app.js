@@ -16,6 +16,8 @@
     parseValue,
     buildBenchmarkTable,
     buildReachability,
+    normalizeFlatCount,
+    substatOverflow,
     fmt,
     formatStage,
   } = window.E7Calc;
@@ -30,6 +32,7 @@
       })
     ),
     stage: 0,
+    flatCount: 0,
     stats: Object.fromEntries(STATS.map((stat) => [stat.key, ""])),
     plusThree: Object.fromEntries(STATS.map((stat) => [stat.key, []])),
     baseOrder: [],
@@ -46,6 +49,9 @@
     profileChip: document.getElementById("profile-chip"),
     levelControl: document.getElementById("level-control"),
     targetPerRoll: document.getElementById("target-per-roll"),
+    flatControl: document.getElementById("flat-control"),
+    flatError: document.getElementById("flat-error"),
+    flatNote: document.getElementById("flat-note"),
     enhanceControl: document.getElementById("enhance-control"),
     rollCount: document.getElementById("roll-count"),
     statRows: document.getElementById("stat-rows"),
@@ -433,11 +439,13 @@
     });
   }
 
-  function formulaFor(level) {
-    if (level === 88) {
-      return "= (ATK% + HP% + DEF% + EFF% + ER%) × 10/9 + SPD × 2 + CC% × 10/6 + CD% × 10/8";
-    }
-    return "= ATK% + HP% + DEF% + EFF% + ER% + SPD × 2 + CC% × 1.6 + CD% × 8/7";
+  function formulaFor(level, flatCount, target) {
+    const formula = level === 88
+      ? "= (ATK% + HP% + DEF% + EFF% + ER%) × 10/9 + SPD × 2 + CC% × 10/6 + CD% × 10/8"
+      : "= ATK% + HP% + DEF% + EFF% + ER% + SPD × 2 + CC% × 1.6 + CD% × 8/7";
+    return level === 85 && normalizeFlatCount(flatCount) > 0
+      ? formula + " − " + fmt(target) + " × flat"
+      : formula;
   }
 
   function resultLabel(row) {
@@ -455,7 +463,7 @@
     }
   }
 
-  function renderReach(rows, profile, stage) {
+  function renderReach(rows, profile, stage, penalty) {
     els.reachRows.innerHTML = rows
       .map(function (row) {
         const isCurrent = row.stage === stage;
@@ -496,9 +504,15 @@
         profile.maxRollPoints +
         " pts per remaining roll (" +
         remaining +
-        " to +15). Raw is above the gem line; a stage is reachable when the gem-inclusive best-case meets its benchmark.";
+        " to +15).";
+      if (state.flatCount === 0) {
+        note += " Raw is above the gem line; a stage is reachable when the gem-inclusive best-case meets its benchmark.";
+      }
     } else {
       note = "This gear is at +15; no further upgrades remain.";
+    }
+    if (penalty > 0) {
+      note += " The flat stat deduction of " + fmt(penalty) + " pts is already included; benchmarks are unchanged.";
     }
     els.reachNote.textContent = note;
 
@@ -526,6 +540,7 @@
     } else {
       let reason;
       if (profile.level !== 85) reason = "Lv 85 gear only";
+      else if (state.flatCount > 0) reason = "Flat stats present — mod gem disabled";
       else if (state.modGemMode === "off") reason = "Gem disabled (Off)";
       else if (rows[0] && rows[0].state === "empty") reason = "Enter substats to see a mod plan";
       else reason = "No eligible substat at 1 base roll or no valid target";
@@ -571,24 +586,43 @@
     syncStatRowOrder();
     renderChips(profile);
     const effective = effectiveStats(state.stats, state.plusThree);
-    const score = computeScore(profile, effective);
-    const hasStats = score.rows.some((row) => row.value > 0);
+    const target = state.perRoll[profile.key];
+    const score = computeScore(profile, effective, state.flatCount, target);
+    const hasStats = score.rows.some((row) => row.value > 0) || score.penalty > 0;
     const displayStage = effectiveStage(state.stage, countPlusThree(state.plusThree));
     const currentRolls = rollsAt(profile, displayStage);
     const finalRolls = totalRolls(profile);
 
     setSelected(els.levelControl, "level", state.level, false);
 
-    const modDisabled = profile.level !== 85;
+    const flatAllowed = profile.key === "epic85";
+    setSelected(els.flatControl, "flat", state.flatCount, false);
+    els.flatControl.querySelectorAll("button").forEach((btn) => {
+      btn.disabled = !flatAllowed;
+      btn.title = flatAllowed ? "" : "Flat stats only apply to Lv 85 gear";
+    });
+
+    const overflow = flatAllowed ? substatOverflow(state.flatCount, state.stats) : null;
+    els.flatError.hidden = !overflow;
+    els.flatError.textContent = overflow
+      ? "Too many substats: " + overflow.flats + " flat + " + overflow.base +
+        " base = " + overflow.total + " (max " + overflow.max + "). Check the flat count or base values."
+      : "";
+
+    const modDisabled = profile.level !== 85 || state.flatCount > 0;
     els.modGemControl.querySelectorAll("button").forEach((btn) => {
       btn.disabled = modDisabled;
-      btn.title = modDisabled ? "Mod gems only apply to Lv 85 gear" : "";
+      btn.title = profile.level !== 85
+        ? "Mod gems only apply to Lv 85 gear"
+        : state.flatCount > 0
+        ? "Mod gem is disabled when the gear has flat stats"
+        : "";
     });
     setSelected(els.modGemControl, "modGem", state.modGemMode, true);
 
     setSelected(els.enhanceControl, "stage", displayStage, false);
 
-    els.formulaText.textContent = formulaFor(state.level);
+    els.formulaText.textContent = formulaFor(state.level, state.flatCount, target);
     els.profileChip.textContent = profile.label;
     if (profile.key !== targetInputProfileKey || document.activeElement !== els.targetPerRoll) {
       targetInputProfileKey = profile.key;
@@ -631,6 +665,13 @@
 
     els.totalScore.textContent = fmt(score.total);
 
+    els.flatNote.hidden = score.penalty === 0;
+    els.flatNote.textContent = score.penalty > 0
+      ? "Flat stat deduction: −" + fmt(score.penalty) + " (" + state.flatCount +
+        " × " + fmt(target) + " target/roll). Raw " + fmt(score.rawTotal) +
+        " → " + fmt(score.total) + "."
+      : "";
+
     syncAddRollControls(profile, displayStage, score);
     renderRollLog();
     renderReach(
@@ -644,10 +685,12 @@
           stats: state.stats,
           plusThree: state.plusThree,
         },
-        state.perRoll[profile.key]
+        target,
+        state.flatCount
       ),
       profile,
-      displayStage
+      displayStage,
+      score.penalty
     );
     buildBenchmarkCards();
     renderBenchmarks(profile, displayStage);
@@ -676,6 +719,7 @@
       level: state.level,
       perRoll: Object.assign({}, state.perRoll),
       stage: state.stage,
+      flatCount: state.flatCount,
       stats: Object.assign({}, state.stats),
       baseOrder: state.baseOrder.slice(),
       plusThree: Object.fromEntries(
@@ -719,6 +763,7 @@
     }
     const st = Number(saved.stage);
     if (STAGES.includes(st)) state.stage = st;
+    state.flatCount = normalizeFlatCount(saved.flatCount);
     if (saved.stats && typeof saved.stats === "object") {
       STATS.forEach(function (stat) {
         const value = saved.stats[stat.key];
@@ -805,6 +850,14 @@
     const btn = event.target.closest("button[data-level]");
     if (!btn || btn.disabled) return;
     state.level = Number(btn.dataset.level);
+    render();
+    scheduleSave();
+  });
+
+  els.flatControl.addEventListener("click", function (event) {
+    const btn = event.target.closest("button[data-flat]");
+    if (!btn || btn.disabled) return;
+    state.flatCount = normalizeFlatCount(btn.dataset.flat);
     render();
     scheduleSave();
   });
@@ -933,6 +986,7 @@
       state.plusThree[stat.key] = [];
     });
     state.baseOrder = [];
+    state.flatCount = 0;
     syncInputs();
     render();
     scheduleSave();

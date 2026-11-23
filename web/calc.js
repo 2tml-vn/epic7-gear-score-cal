@@ -7,6 +7,11 @@
 
   const STAGES = [0, 3, 6, 9, 12, 15];
 
+  // A gear has four base substat slots. Only ATK, HP and DEF have flat
+  // variants, and each can appear at most once.
+  const MAX_BASE_SUBSTATS = 4;
+  const MAX_FLAT_STATS = 3;
+
   const STATS = [
     { key: "atk", label: "ATK", suffix: "%", kind: "pct" },
     { key: "hp", label: "HP", suffix: "%", kind: "pct" },
@@ -152,7 +157,7 @@
     return Math.min(15, Number(stage) + 3 * Number(count));
   }
 
-  function computeScore(profile, stats) {
+  function computeScore(profile, stats, flatCount, perRoll) {
     const rows = STATS.map(function (stat) {
       const value = parseValue(stats ? stats[stat.key] : 0);
       const weight = profile.weights[stat.key];
@@ -167,10 +172,16 @@
         points: points,
       };
     });
-    const total = rows.reduce(function (sum, row) {
+    const rawTotal = rows.reduce(function (sum, row) {
       return sum + row.points;
     }, 0);
-    return { total: total, rows: rows };
+    const penalty = resolveFlatPenalty(profile, flatCount, perRoll);
+    return {
+      total: rawTotal - penalty,
+      rawTotal: rawTotal,
+      penalty: penalty,
+      rows: rows,
+    };
   }
 
   // The target per roll is user-adjustable; an invalid override falls back to
@@ -178,6 +189,34 @@
   function resolvePerRoll(profile, perRoll) {
     const n = Number(perRoll);
     return Number.isFinite(n) && n > 0 ? n : profile.perRoll;
+  }
+
+  function normalizeFlatCount(flatCount) {
+    const n = Math.floor(Number(flatCount));
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(MAX_FLAT_STATS, n));
+  }
+
+  // Flat ATK / HP / DEF only exist on Lv 85 Epic in this app. Their numeric
+  // value is irrelevant; what matters is how many are on the gear. Each one
+  // costs one target-per-roll worth of points.
+  function resolveFlatPenalty(profile, flatCount, perRoll) {
+    if (!profile || profile.level !== 85) return 0;
+    return resolvePerRoll(profile, perRoll) * normalizeFlatCount(flatCount);
+  }
+
+  // Display-only validation: every flat stat and every base-valued percentage
+  // substat takes one of the gear's four substat slots. Scores are still
+  // computed when the count is over the limit.
+  function substatOverflow(flatCount, stats) {
+    const flats = normalizeFlatCount(flatCount);
+    const baseCount = STATS.filter(function (stat) {
+      return parseValue(stats ? stats[stat.key] : 0) > 0;
+    }).length;
+    const total = flats + baseCount;
+    return total > MAX_BASE_SUBSTATS
+      ? { flats: flats, base: baseCount, total: total, max: MAX_BASE_SUBSTATS }
+      : null;
   }
 
   function buildBenchmarkTable(profile, perRoll) {
@@ -255,10 +294,11 @@
     return best;
   }
 
-  function buildReachability(profile, currentStage, currentScore, hasStats, modGem, perRoll) {
+  function buildReachability(profile, currentStage, currentScore, hasStats, modGem, perRoll, flatCount) {
     const currentRolls = rollsAt(profile, currentStage);
     const maxRollPoints = profile.maxRollPoints;
     const target = resolvePerRoll(profile, perRoll);
+    const gemBlocked = normalizeFlatCount(flatCount) > 0;
 
     return STAGES.map(function (stage) {
       const rolls = rollsAt(profile, stage);
@@ -281,7 +321,7 @@
 
       const remaining = rolls - currentRolls;
       const gem =
-        hasStats && modGem
+        hasStats && modGem && !gemBlocked
           ? bestGreaterModGain(
               modGem.mode,
               profile,
@@ -364,6 +404,11 @@
     PROFILES: PROFILES,
     ROLL_RANGES: ROLL_RANGES,
     GREATER_MOD_MAX: GREATER_MOD_MAX,
+    MAX_BASE_SUBSTATS: MAX_BASE_SUBSTATS,
+    MAX_FLAT_STATS: MAX_FLAT_STATS,
+    normalizeFlatCount: normalizeFlatCount,
+    resolveFlatPenalty: resolveFlatPenalty,
+    substatOverflow: substatOverflow,
     bestGreaterModGain: bestGreaterModGain,
     getProfile: getProfile,
     rollsAt: rollsAt,

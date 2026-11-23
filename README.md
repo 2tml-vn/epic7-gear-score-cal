@@ -13,7 +13,7 @@ A portable, offline Windows app that calculates Epic Seven gear scores and check
 - Each added roll advances the displayed enhancement level by `+3` and the roll count by one (capped at `+15`). Changing the Enhance buttons rebalances the added rolls to match the selected stage.
 - The substat grid has three columns — **Substat**, **Value + Rolls** (base picker, custom value, `+3` chips, and `base → total`), and **Points** — with the total gear score in the footer. Substats with a base value stay grouped at the top in the order their base values were entered (first entered stays topmost); empty substats sit below them in the default order. Setting or clearing a base value moves its row between the groups automatically.
 
-Flat ATK / HP / DEF, main stats, and set bonuses are ignored entirely.
+Main stats and set bonuses are ignored entirely. On **Lv 85 Epic only**, a **Flat stats** control (0–3) marks how many of the gear's substats are flat ATK / HP / DEF; their values are irrelevant, only the count matters. Lv 88 ignores flats. A gear with flat stats cannot use a mod gem.
 
 **Score**
 
@@ -37,6 +37,14 @@ Score = (ATK% + HP% + DEF% + EFF% + ER%) × 10/9
 
 The extended 5-speed roll on Lv 85 Epic uses the normal SPD weight and is worth 10 points. Reachability projections deliberately keep using the standard 8-point maximum for Lv 85 gear (see below).
 
+**Flat stat deduction (Lv 85 only):** each flat ATK / HP / DEF on the gear subtracts one **Target / roll** from the total score:
+
+```
+Total = weighted substat sum − Target / roll × number of flat stats
+```
+
+With the default 6.08 target, two flats deduct 12.16. Changing **Target / roll** rescales the deduction. The reduced total is also the starting point for reachability, so best-case scores drop by the same amount at every stage; benchmark targets are unchanged. Lv 88 Epic ignores the flat count. A gear has at most four substat slots, so an error is shown when `flat count + base-valued percentage stats > 4` (the score is still calculated).
+
 **Benchmarks** are cumulative targets, `rolls at stage × target per roll`:
 
 | Profile | Target / roll | Rolls at +0 → +15 | +15 benchmark |
@@ -58,6 +66,8 @@ A maximum roll is worth **8 points on Lv 85** and **10 points on Lv 88** for eve
 ### Substat modification gem (Lv 85 only)
 
 The **Mod gem** control in the reachability panel has three modes: **Off**, **Same stat** (ATK% → ATK%), and **Any stat** (ATK% → any substat not already on the gear). Lv 88 gear ignores the setting.
+
+Gear with one or more flat stats has the mod gem disabled: the buttons are inactive and gem points are zero at every stage.
 
 A Greater gem can only be used on a substat that is still at **one base roll** — no `+3` roll has landed on it. The sheet tracks this per substat at every stage: if a projected roll lands on the gem source, the calculation switches to another eligible substat, or drops the gem gain to zero if none remain. Remaining rolls in the projection are placed on the other substats so the chosen source stays at one base roll.
 
