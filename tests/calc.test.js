@@ -299,32 +299,38 @@ test("flat count is clamped to an integer from 0 to 3", () => {
   assert.equal(normalizeFlatCount("3"), 3);
 });
 
-test("flat stats deduct the target per roll on Lv85 only", () => {
+test("flat stats cost a max roll plus target per roll for each extra flat on Lv85 only", () => {
   const p85 = getProfile(85);
   const p88 = getProfile(88);
   const stats = Object.assign(blankStats(), { atk: 8, spd: 4 });
   const raw = computeScore(p85, stats).total; // 8 + 4*2 = 16
   assert.equal(raw, 16);
 
+  // One flat costs exactly one Lv85 max roll and ignores Target / roll.
   const one = computeScore(p85, stats, 1);
-  assert.equal(one.penalty, 6.08);
-  assert.equal(round2(one.total), 9.92);
+  assert.equal(one.penalty, 8);
+  assert.equal(round2(one.total), 8);
   assert.equal(one.rawTotal, 16);
+  assert.equal(computeScore(p85, stats, 1, 7).penalty, 8);
+  assert.equal(computeScore(p85, stats, 1, 0).penalty, 8);
 
+  // The first flat is 8; each extra flat adds one Target / roll.
   const two = computeScore(p85, stats, 2);
-  assert.equal(round2(two.penalty), 12.16);
-  assert.equal(round2(two.total), 3.84);
+  assert.equal(round2(two.penalty), 14.08);
+  assert.equal(round2(two.total), 1.92);
+  assert.equal(round2(computeScore(p85, stats, 3).penalty), 20.16);
 
   assert.equal(computeScore(p85, stats, 0).penalty, 0);
   assert.equal(computeScore(p85, stats, 0).total, raw);
 
-  // A custom Target / roll scales the deduction; scores may go negative.
+  // A custom Target / roll scales only the extra flats; scores may go negative.
   const adjusted = computeScore(p85, stats, 3, 7);
-  assert.equal(adjusted.penalty, 21);
-  assert.equal(adjusted.total, -5);
+  assert.equal(adjusted.penalty, 22);
+  assert.equal(adjusted.total, -6);
+  assert.equal(computeScore(p85, stats, 2, 7).penalty, 15);
 
   // Invalid overrides fall back to the Lv85 default of 6.08.
-  assert.equal(round2(computeScore(p85, stats, 2, 0).penalty), 12.16);
+  assert.equal(round2(computeScore(p85, stats, 2, 0).penalty), 14.08);
 
   // Lv88 Epic ignores flats entirely.
   const l88 = computeScore(p88, stats, 3, 8.04);
@@ -335,30 +341,30 @@ test("flat stats deduct the target per roll on Lv85 only", () => {
 test("flat penalty is deducted from the Bench column and changes the verdict", () => {
   const p = getProfile(85);
   const stats = Object.assign(blankStats(), { atk: 8, spd: 4 });
-  const score = computeScore(p, stats, 2); // raw 16, penalty 12.16, total 3.84
+  const score = computeScore(p, stats, 2); // raw 16, penalty 14.08, total 1.92
   assert.equal(score.rawTotal, 16);
-  assert.equal(round2(score.penalty), 12.16);
-  assert.equal(round2(score.total), 3.84);
+  assert.equal(round2(score.penalty), 14.08);
+  assert.equal(round2(score.total), 1.92);
 
   const flat = buildReachability(p, 0, score.total, true, null, undefined, 2);
   assert.deepEqual(
     flat.map((row) => round2(row.benchmark)),
-    [12.16, 18.24, 24.32, 30.4, 36.48, 42.56]
+    [10.24, 16.32, 22.4, 28.48, 34.56, 40.64]
   );
 
-  // With an unchanged Bench, +15 would be 43.84 < 54.72 → not reachable.
+  // With an unchanged Bench, +15 would be 41.92 < 54.72 → not reachable.
   const unchanged = buildReachability(p, 0, score.total, true);
   assert.equal(unchanged[5].benchmark, 54.72);
   assert.equal(unchanged[5].bestCase, flat[5].bestCase);
   assert.equal(unchanged[5].reachable, false);
 
-  assert.equal(round2(flat[5].bestCase), 43.84);
+  assert.equal(round2(flat[5].bestCase), 41.92);
   assert.equal(flat[5].reachable, true);
   assert.equal(flat[5].state, "reachable");
 
   // Past stages show the reduced Bench too.
   const past = buildReachability(p, 9, score.total, true, null, undefined, 2);
-  assert.equal(round2(past[0].benchmark), 12.16);
+  assert.equal(round2(past[0].benchmark), 10.24);
   assert.equal(past[0].state, "past");
 
   // A gear with no flats keeps the original benchmark table.
@@ -367,6 +373,23 @@ test("flat penalty is deducted from the Bench column and changes the verdict", (
     plain.map((row) => round2(row.benchmark)),
     [24.32, 30.4, 36.48, 42.56, 48.64, 54.72]
   );
+});
+
+test("a single flat deducts 8 from the Bench column too", () => {
+  const p = getProfile(85);
+  const score = computeScore(p, blankStats(), 1);
+  assert.equal(score.penalty, 8);
+  assert.equal(score.total, -8);
+
+  const rows = buildReachability(p, 0, score.total, true, null, undefined, 1);
+  assert.deepEqual(
+    rows.map((row) => round2(row.benchmark)),
+    [16.32, 22.4, 28.48, 34.56, 40.64, 46.72]
+  );
+
+  // An edited target changes the benchmark base, but not the flat penalty.
+  const custom = buildReachability(p, 0, score.total, true, null, 7, 1);
+  assert.equal(custom[0].benchmark, 20); // 4 × 7 − 8
 });
 
 test("flat stats disable the mod gem in reachability", () => {

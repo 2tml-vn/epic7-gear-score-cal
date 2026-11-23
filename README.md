@@ -37,16 +37,18 @@ Score = (ATK% + HP% + DEF% + EFF% + ER%) × 10/9
 
 The extended 5-speed roll on Lv 85 Epic uses the normal SPD weight and is worth 10 points. Reachability projections deliberately keep using the standard 8-point maximum for Lv 85 gear (see below).
 
-**Flat stat deduction (Lv 85 only):** each flat ATK / HP / DEF on the gear subtracts one **Target / roll** from the total score:
+**Flat stat deduction (Lv 85 only):** flat ATK / HP / DEF substats reduce the score:
 
 ```
-Total = weighted substat sum − Target / roll × number of flat stats
+penalty = 0                                when n = 0
+penalty = 8 + (n − 1) × Target / roll      when n ≥ 1
+Total   = weighted substat sum − penalty
 ```
 
-With the default 6.08 target, two flats deduct 12.16. Changing **Target / roll** rescales the deduction. In reachability, the same deduction is applied to the **Bench** value at every stage:
+The first flat costs exactly one Lv 85 max roll (8 points) and ignores the editable **Target / roll**; every additional flat costs one Target / roll. With the default 6.08 target, one/two/three flats deduct 8.00 / 14.08 / 20.16 (with a target of 7: 8.00 / 15.00 / 22.00). In reachability, the same penalty is applied to the **Bench** value at every stage:
 
 ```
-Bench = rolls × Target / roll − Target / roll × number of flat stats
+Bench = rolls × Target / roll − penalty
 ```
 
 The reduced total is the starting point for best-case scores and the reduced Bench is what they are compared against, so both sides drop by the same amount. Lv 88 Epic ignores the flat count. A gear has at most four substat slots, so an error is shown when `flat count + base-valued percentage stats > 4` (the score is still calculated).

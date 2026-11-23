@@ -439,12 +439,12 @@
     });
   }
 
-  function formulaFor(level, flatCount, target) {
+  function formulaFor(level, flatCount, penalty) {
     const formula = level === 88
       ? "= (ATK% + HP% + DEF% + EFF% + ER%) × 10/9 + SPD × 2 + CC% × 10/6 + CD% × 10/8"
       : "= ATK% + HP% + DEF% + EFF% + ER% + SPD × 2 + CC% × 1.6 + CD% × 8/7";
     return level === 85 && normalizeFlatCount(flatCount) > 0
-      ? formula + " − " + fmt(target) + " × flat"
+      ? formula + " − " + fmt(penalty) + " flat"
       : formula;
   }
 
@@ -625,7 +625,7 @@
 
     setSelected(els.enhanceControl, "stage", displayStage, false);
 
-    els.formulaText.textContent = formulaFor(state.level, state.flatCount, target);
+    els.formulaText.textContent = formulaFor(state.level, state.flatCount, score.penalty);
     els.profileChip.textContent = profile.label;
     if (profile.key !== targetInputProfileKey || document.activeElement !== els.targetPerRoll) {
       targetInputProfileKey = profile.key;
@@ -670,9 +670,12 @@
 
     els.flatNote.hidden = score.penalty === 0;
     els.flatNote.textContent = score.penalty > 0
-      ? "Flat stat deduction: −" + fmt(score.penalty) + " (" + state.flatCount +
-        " × " + fmt(target) + " target/roll). Raw " + fmt(score.rawTotal) +
-        " → " + fmt(score.total) + "."
+      ? "Flat stat deduction: −" + fmt(score.penalty) + " (" +
+        (state.flatCount === 1
+          ? "1 flat = " + fmt(score.penalty) + " pts max roll"
+          : "first flat " + fmt(profile.maxRollPoints) + " + " + (state.flatCount - 1) +
+            " × " + fmt(target) + " target/roll") +
+        "). Raw " + fmt(score.rawTotal) + " → " + fmt(score.total) + "."
       : "";
 
     syncAddRollControls(profile, displayStage, score);

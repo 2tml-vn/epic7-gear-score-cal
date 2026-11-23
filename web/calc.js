@@ -202,7 +202,11 @@
   // costs one target-per-roll worth of points.
   function resolveFlatPenalty(profile, flatCount, perRoll) {
     if (!profile || profile.level !== 85) return 0;
-    return resolvePerRoll(profile, perRoll) * normalizeFlatCount(flatCount);
+    const n = normalizeFlatCount(flatCount);
+    if (!n) return 0;
+    // The first flat stat costs one Lv 85 max roll; each additional flat
+    // costs one user-adjustable target per roll.
+    return profile.maxRollPoints + (n - 1) * resolvePerRoll(profile, perRoll);
   }
 
   // Display-only validation: every flat stat and every base-valued percentage
