@@ -157,7 +157,7 @@
     return Math.min(15, Number(stage) + 3 * Number(count));
   }
 
-  function computeScore(profile, stats, flatCount, perRoll) {
+  function computeScore(profile, stats) {
     const rows = STATS.map(function (stat) {
       const value = parseValue(stats ? stats[stat.key] : 0);
       const weight = profile.weights[stat.key];
@@ -172,16 +172,10 @@
         points: points,
       };
     });
-    const rawTotal = rows.reduce(function (sum, row) {
+    const total = rows.reduce(function (sum, row) {
       return sum + row.points;
     }, 0);
-    const penalty = resolveFlatPenalty(profile, flatCount, perRoll);
-    return {
-      total: rawTotal - penalty,
-      rawTotal: rawTotal,
-      penalty: penalty,
-      rows: rows,
-    };
+    return { total: total, rows: rows };
   }
 
   // The target per roll is user-adjustable; an invalid override falls back to
@@ -198,14 +192,15 @@
   }
 
   // Flat ATK / HP / DEF only exist on Lv 85 Epic in this app. Their numeric
-  // value is irrelevant; what matters is how many are on the gear. Each one
-  // costs one target-per-roll worth of points.
-  function resolveFlatPenalty(profile, flatCount, perRoll) {
+  // value is irrelevant; what matters is how many are on the gear. Flat stats
+  // never change the gear score — they only lower the Bench values, because
+  // those rolls cannot contribute a scoring stat.
+  function resolveFlatAdjustment(profile, flatCount, perRoll) {
     if (!profile || profile.level !== 85) return 0;
     const n = normalizeFlatCount(flatCount);
     if (!n) return 0;
-    // The first flat stat costs one Lv 85 max roll; each additional flat
-    // costs one user-adjustable target per roll.
+    // The first flat costs one Lv 85 max roll; each additional flat costs one
+    // user-adjustable target per roll.
     return profile.maxRollPoints + (n - 1) * resolvePerRoll(profile, perRoll);
   }
 
@@ -302,13 +297,13 @@
     const currentRolls = rollsAt(profile, currentStage);
     const maxRollPoints = profile.maxRollPoints;
     const target = resolvePerRoll(profile, perRoll);
-    const flatPenalty = resolveFlatPenalty(profile, flatCount, perRoll);
+    const flatAdjustment = resolveFlatAdjustment(profile, flatCount, perRoll);
     const gemBlocked = normalizeFlatCount(flatCount) > 0;
 
     return STAGES.map(function (stage) {
       const rolls = rollsAt(profile, stage);
-      // Flat stats lower both the score and the target by the same amount.
-      const benchmark = rolls * target - flatPenalty;
+      // Flat stats only lower the target; the gear score is unaffected.
+      const benchmark = rolls * target - flatAdjustment;
 
       if (stage < currentStage) {
         return {
@@ -413,7 +408,7 @@
     MAX_BASE_SUBSTATS: MAX_BASE_SUBSTATS,
     MAX_FLAT_STATS: MAX_FLAT_STATS,
     normalizeFlatCount: normalizeFlatCount,
-    resolveFlatPenalty: resolveFlatPenalty,
+    resolveFlatAdjustment: resolveFlatAdjustment,
     substatOverflow: substatOverflow,
     bestGreaterModGain: bestGreaterModGain,
     getProfile: getProfile,

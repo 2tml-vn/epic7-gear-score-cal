@@ -127,7 +127,7 @@
                 </table>
               </div>
               <p id="flat-note" class="flat-note" hidden></p>
-              <p class="hint">Pick a valid single roll from <strong>BASE</strong>, or type any value. Add <code>+3</code> rolls with the box above; they only land on substats with a base value. The row shows <code>base → total</code>. On Lv 85, each flat ATK / HP / DEF set in the setup bar deducts one Target / roll. Main stats and set bonuses are ignored.</p>
+              <p class="hint">Pick a valid single roll from <strong>BASE</strong>, or type any value. Add <code>+3</code> rolls with the box above; they only land on substats with a base value. The row shows <code>base → total</code>. On Lv 85, flat ATK / HP / DEF set in the setup bar lower the Bench values in reachability, not this score. Main stats and set bonuses are ignored.</p>
             </div>
 
             <div class="side-column">
@@ -191,7 +191,7 @@
                     <tr><td>SPD</td><td>2.000</td><td>2.000</td><td>8.00</td><td>10.00</td></tr>
                     <tr><td>Crit Chance %</td><td>1.600</td><td>1.667</td><td>8.00</td><td>10.00</td></tr>
                     <tr><td>Crit Damage %</td><td>1.143 <span class="muted">(8/7)</span></td><td>1.250 <span class="muted">(10/8)</span></td><td>8.00</td><td>10.00</td></tr>
-                    <tr><td>Flat ATK / HP / DEF</td><td colspan="4" class="muted">Lv 85 only: each flat stat deducts one Target / roll from the total</td></tr>
+                    <tr><td>Flat ATK / HP / DEF</td><td colspan="4" class="muted">Lv 85 only: lowers Bench values, not the gear score (first flat 8 pts, then one Target / roll each)</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -236,7 +236,7 @@
                 <li><strong>Reachability</strong> = current score + remaining rolls × max roll value ≥ benchmark.</li>
                 <li>The Lv 85 average: <code>(5×6.00 + 6.00 + 6.29 + 6.40) ÷ 8 = 6.0857 ≈ 6.08</code>.</li>
                 <li>The Lv 88 target of 8.04 is the calibrated 10-point-system average per roll.</li>
-                <li>Main stats and set bonuses are not part of the score. On Lv 85, the first flat deducts 8 points and each extra flat deducts one target per roll (default 6.08). Lv 88 ignores flats.</li>
+                <li>Main stats and set bonuses are not part of the score. On Lv 85, flat stats lower the Bench values (first flat 8 points, each extra flat one target per roll, default 6.08) but never the gear score. Lv 88 ignores flats.</li>
               </ul>
             </article>
 

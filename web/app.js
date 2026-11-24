@@ -17,6 +17,7 @@
     buildBenchmarkTable,
     buildReachability,
     normalizeFlatCount,
+    resolveFlatAdjustment,
     substatOverflow,
     fmt,
     formatStage,
@@ -439,13 +440,11 @@
     });
   }
 
-  function formulaFor(level, flatCount, penalty) {
-    const formula = level === 88
-      ? "= (ATK% + HP% + DEF% + EFF% + ER%) × 10/9 + SPD × 2 + CC% × 10/6 + CD% × 10/8"
-      : "= ATK% + HP% + DEF% + EFF% + ER% + SPD × 2 + CC% × 1.6 + CD% × 8/7";
-    return level === 85 && normalizeFlatCount(flatCount) > 0
-      ? formula + " − " + fmt(penalty) + " flat"
-      : formula;
+  function formulaFor(level) {
+    if (level === 88) {
+      return "= (ATK% + HP% + DEF% + EFF% + ER%) × 10/9 + SPD × 2 + CC% × 10/6 + CD% × 10/8";
+    }
+    return "= ATK% + HP% + DEF% + EFF% + ER% + SPD × 2 + CC% × 1.6 + CD% × 8/7";
   }
 
   function resultLabel(row) {
@@ -463,7 +462,7 @@
     }
   }
 
-  function renderReach(rows, profile, stage, penalty) {
+  function renderReach(rows, profile, stage, flatAdjustment) {
     els.reachRows.innerHTML = rows
       .map(function (row) {
         const isCurrent = row.stage === stage;
@@ -486,8 +485,8 @@
           '<tr class="' + classes + '" data-stage="' + row.stage + '">' +
           "<td>" + formatStage(row.stage) + (isCurrent ? '<span class="now-tag">current</span>' : "") + "</td>" +
           "<td>" + row.rolls + "</td>" +
-          '<td title="' + (penalty > 0
-            ? "Target " + fmt(row.benchmark + penalty) + " − " + fmt(penalty) + " flat deduction"
+          '<td title="' + (flatAdjustment > 0
+            ? "Target " + fmt(row.benchmark + flatAdjustment) + " − " + fmt(flatAdjustment) + " flat adjustment"
             : "") + '">' + fmt(row.benchmark) + "</td>" +
           '<td title="' + title + '">' + bestCell + "</td>" +
           "<td>" + resultLabel(row) + "</td>" +
@@ -513,9 +512,9 @@
     } else {
       note = "This gear is at +15; no further upgrades remain.";
     }
-    if (penalty > 0) {
-      note += " The flat stat deduction of " + fmt(penalty) +
-        " pts is applied to both the current score and every Bench value.";
+    if (flatAdjustment > 0) {
+      note += " The flat stat adjustment of " + fmt(flatAdjustment) +
+        " pts lowers every Bench value; the gear score is unchanged.";
     }
     els.reachNote.textContent = note;
 
@@ -590,8 +589,9 @@
     renderChips(profile);
     const effective = effectiveStats(state.stats, state.plusThree);
     const target = state.perRoll[profile.key];
-    const score = computeScore(profile, effective, state.flatCount, target);
-    const hasStats = score.rows.some((row) => row.value > 0) || score.penalty > 0;
+    const score = computeScore(profile, effective);
+    const flatAdjustment = resolveFlatAdjustment(profile, state.flatCount, target);
+    const hasStats = score.rows.some((row) => row.value > 0);
     const displayStage = effectiveStage(state.stage, countPlusThree(state.plusThree));
     const currentRolls = rollsAt(profile, displayStage);
     const finalRolls = totalRolls(profile);
@@ -625,7 +625,7 @@
 
     setSelected(els.enhanceControl, "stage", displayStage, false);
 
-    els.formulaText.textContent = formulaFor(state.level, state.flatCount, score.penalty);
+    els.formulaText.textContent = formulaFor(state.level);
     els.profileChip.textContent = profile.label;
     if (profile.key !== targetInputProfileKey || document.activeElement !== els.targetPerRoll) {
       targetInputProfileKey = profile.key;
@@ -668,14 +668,15 @@
 
     els.totalScore.textContent = fmt(score.total);
 
-    els.flatNote.hidden = score.penalty === 0;
-    els.flatNote.textContent = score.penalty > 0
-      ? "Flat stat deduction: −" + fmt(score.penalty) + " (" +
+    els.flatNote.hidden = flatAdjustment === 0;
+    els.flatNote.textContent = flatAdjustment > 0
+      ? "Flat stats do not change this score; they lower every Bench value by " +
+        fmt(flatAdjustment) + " (" +
         (state.flatCount === 1
-          ? "1 flat = " + fmt(score.penalty) + " pts max roll"
+          ? "1 flat = " + fmt(flatAdjustment) + " pts max roll"
           : "first flat " + fmt(profile.maxRollPoints) + " + " + (state.flatCount - 1) +
             " × " + fmt(target) + " target/roll") +
-        "). Raw " + fmt(score.rawTotal) + " → " + fmt(score.total) + "."
+        ")."
       : "";
 
     syncAddRollControls(profile, displayStage, score);
@@ -696,7 +697,7 @@
       ),
       profile,
       displayStage,
-      score.penalty
+      flatAdjustment
     );
     buildBenchmarkCards();
     renderBenchmarks(profile, displayStage);
