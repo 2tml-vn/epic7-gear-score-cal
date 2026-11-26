@@ -52,6 +52,14 @@
     cd: 7,
   });
 
+  // Full Greater gem base-roll ranges ("88 or lower"), from the reference table.
+  // Crit Chance is deliberately absent for the same reason as above.
+  const GREATER_MOD_RANGE = Object.freeze({
+    pct: Object.freeze({ min: 4, max: 8 }),
+    spd: Object.freeze({ min: 2, max: 4 }),
+    cd: Object.freeze({ min: 4, max: 7 }),
+  });
+
   const L85_WEIGHTS = Object.freeze({
     atk: 1,
     hp: 1,
@@ -293,6 +301,77 @@
     return best;
   }
 
+  // A Greater gem can be applied to ONE flat stat of a Lv 85 gear at +15. Only
+  // that one flat is modded away; the remaining n−1 flats stay worth zero. The
+  // score to aim for is therefore (total rolls − (n−1)) × target per roll,
+  // which is exactly the old flat-reduced Bench plus one max roll (8 points).
+  function flatStatModPlan(profile, stage, currentScore, flatCount, stats, plusThree, perRoll, targetKey) {
+    const flat = normalizeFlatCount(flatCount);
+    if (!profile || profile.level !== 85 || Number(stage) !== 15 || !flat) return null;
+
+    const target = resolvePerRoll(profile, perRoll);
+    const targetRolls = totalRolls(profile) - (flat - 1);
+    const goal = targetRolls * target;
+    const score = parseValue(currentScore);
+    const deficit = goal - score;
+    const base = {
+      flatCount: flat,
+      targetRolls: targetRolls,
+      targetPerRoll: target,
+      target: goal,
+      score: score,
+      deficit: deficit,
+    };
+    if (deficit <= 1e-9) return Object.assign(base, { status: "met" });
+
+    // The modded stat must not already be on the gear, and CC is excluded
+    // because its Greater mod value is one lower than a normal roll.
+    const values = effectiveStats(stats, plusThree);
+    const candidates = STATS.filter(function (stat) {
+      return stat.key !== "cc" && values[stat.key] <= 0 && Boolean(GREATER_MOD_RANGE[stat.kind]);
+    }).map(function (stat) {
+      return {
+        key: stat.key,
+        label: stat.label + stat.suffix,
+        weight: profile.weights[stat.key],
+        range: GREATER_MOD_RANGE[stat.kind],
+      };
+    });
+    if (!candidates.length) return Object.assign(base, { status: "no-target" });
+
+    // Auto picks the stat needing the smallest value (the highest score weight).
+    // Ties fall back to the larger Greater max for more headroom.
+    const ranked = candidates.slice().sort(function (a, b) {
+      if (b.weight !== a.weight) return b.weight - a.weight;
+      return b.range.max - a.range.max;
+    });
+    const chosen = ranked.find(function (stat) {
+      return stat.key === targetKey;
+    }) || ranked[0];
+    const minValue = deficit / chosen.weight;
+    const displayValue = Math.ceil((minValue - 1e-9) * 100) / 100;
+
+    return Object.assign(base, {
+      status: "plan",
+      sourceLabel: "Flat stat",
+      targetKey: chosen.key,
+      targetLabel: chosen.label,
+      weight: chosen.weight,
+      auto: chosen.key === ranked[0].key,
+      minValue: minValue,
+      displayValue: displayValue,
+      rangeMin: chosen.range.min,
+      rangeMax: chosen.range.max,
+      points: minValue * chosen.weight,
+      finalScore: score + minValue * chosen.weight,
+      achievable: minValue <= chosen.range.max + 1e-9,
+      belowMin: minValue < chosen.range.min - 1e-9,
+      candidates: ranked.map(function (stat) {
+        return { key: stat.key, label: stat.label };
+      }),
+    });
+  }
+
   function buildReachability(profile, currentStage, currentScore, hasStats, modGem, perRoll, flatCount) {
     const currentRolls = rollsAt(profile, currentStage);
     const maxRollPoints = profile.maxRollPoints;
@@ -405,12 +484,14 @@
     PROFILES: PROFILES,
     ROLL_RANGES: ROLL_RANGES,
     GREATER_MOD_MAX: GREATER_MOD_MAX,
+    GREATER_MOD_RANGE: GREATER_MOD_RANGE,
     MAX_BASE_SUBSTATS: MAX_BASE_SUBSTATS,
     MAX_FLAT_STATS: MAX_FLAT_STATS,
     normalizeFlatCount: normalizeFlatCount,
     resolveFlatAdjustment: resolveFlatAdjustment,
     substatOverflow: substatOverflow,
     bestGreaterModGain: bestGreaterModGain,
+    flatStatModPlan: flatStatModPlan,
     getProfile: getProfile,
     rollsAt: rollsAt,
     totalRolls: totalRolls,

@@ -16,6 +16,7 @@
     parseValue,
     buildBenchmarkTable,
     buildReachability,
+    flatStatModPlan,
     normalizeFlatCount,
     resolveFlatAdjustment,
     substatOverflow,
@@ -40,6 +41,7 @@
     theme: "dark",
     view: "calculator",
     modGemMode: "any",
+    flatGemTarget: "auto",
   };
 
   const els = {
@@ -61,6 +63,7 @@
     reachNote: document.getElementById("reach-note"),
     modGemControl: document.getElementById("mod-gem-control"),
     modPlan: document.getElementById("mod-plan"),
+    flatGemPlan: document.getElementById("flat-gem-plan"),
     benchGrid: document.getElementById("bench-grid"),
     rollTarget: document.getElementById("roll-target"),
     rollValue: document.getElementById("roll-value"),
@@ -552,6 +555,65 @@
     }
   }
 
+  function renderFlatGemPlan(plan) {
+    els.flatGemPlan.hidden = !plan;
+    if (!plan) {
+      els.flatGemPlan.innerHTML = "";
+      return;
+    }
+
+    const head =
+      '<div class="mod-plan-head"><strong>Flat-stat mod · +15</strong>' +
+      "<span>" + plan.flatCount + " flat stat" + (plan.flatCount === 1 ? "" : "s") + "</span></div>" +
+      '<div class="flat-gem-meta">Target <strong>' + fmt(plan.target) + "</strong> (" +
+      plan.targetRolls + " × " + fmt(plan.targetPerRoll) + ") · Current <strong>" +
+      fmt(plan.score) + "</strong> · Need <strong>+" + fmt(plan.deficit) + "</strong></div>";
+
+    if (plan.status === "met") {
+      els.flatGemPlan.innerHTML =
+        head + '<div class="mod-plan-empty">Already meets the flat-stat target — no gem needed.</div>';
+      return;
+    }
+    if (plan.status === "no-target") {
+      els.flatGemPlan.innerHTML =
+        head +
+        '<div class="mod-plan-empty">No eligible stat to mod into (stats already on the gear and Crit Chance are excluded).</div>';
+      return;
+    }
+
+    const options =
+      ['<option value="auto"' + (state.flatGemTarget === "auto" ? " selected" : "") + ">Auto (best gain)</option>"].concat(
+        plan.candidates.map(function (candidate) {
+          return (
+            '<option value="' + candidate.key + '"' +
+            (state.flatGemTarget === candidate.key ? " selected" : "") +
+            ">" + candidate.label + "</option>"
+          );
+        })
+      ).join("");
+
+    let note = "Greater " + plan.rangeMin + "–" + plan.rangeMax + " base roll · ";
+    note += plan.achievable ? "within gem range" : "above Greater max — not achievable";
+    if (plan.belowMin) note += " · below the Greater minimum; the gem will overshoot";
+    const noteClass = plan.achievable ? "flat-gem-note" : "flat-gem-note is-bad";
+
+    els.flatGemPlan.innerHTML =
+      head +
+      '<label class="flat-gem-select">Target stat <select data-role="flat-gem-target" aria-label="Flat-stat mod target substat">' +
+      options +
+      "</select></label>" +
+      '<div class="mod-plan-flow">' +
+      '<span class="mod-plan-label">MOD 1 FLAT</span>' +
+      '<span class="mod-plan-stat">' + plan.sourceLabel + "</span>" +
+      '<span class="mod-plan-arrow">→</span>' +
+      '<span class="mod-plan-label">TO</span>' +
+      '<span class="mod-plan-stat">' + plan.targetLabel + "</span>" +
+      '<span class="mod-plan-value">≥ ' + fmt(plan.displayValue) + "</span>" +
+      '<span class="mod-plan-gain">+' + fmt(plan.points) + " pts</span>" +
+      "</div>" +
+      '<div class="' + noteClass + '">' + note + "</div>";
+  }
+
   function renderBenchmarks(profile, stage) {
     els.benchGrid.querySelectorAll(".bench-card").forEach((card) => {
       const active = card.dataset.profile === profile.key;
@@ -681,23 +743,38 @@
 
     syncAddRollControls(profile, displayStage, score);
     renderRollLog();
-    renderReach(
-      buildReachability(
-        profile,
-        displayStage,
-        score.total,
-        hasStats,
-        {
-          mode: state.modGemMode,
-          stats: state.stats,
-          plusThree: state.plusThree,
-        },
-        target,
-        state.flatCount
-      ),
+    const reachRows = buildReachability(
       profile,
       displayStage,
-      flatAdjustment
+      score.total,
+      hasStats,
+      {
+        mode: state.modGemMode,
+        stats: state.stats,
+        plusThree: state.plusThree,
+      },
+      target,
+      state.flatCount
+    );
+    renderReach(reachRows, profile, displayStage, flatAdjustment);
+
+    // Flat-stat mods only make sense for a +15 gear that already meets the
+    // old (flat-reduced) Bench. BuildReachability returns STAGES in order, so
+    // the last row is always +15.
+    const finalRow = reachRows[reachRows.length - 1];
+    renderFlatGemPlan(
+      finalRow && finalRow.state === "met"
+        ? flatStatModPlan(
+            profile,
+            displayStage,
+            score.total,
+            state.flatCount,
+            state.stats,
+            state.plusThree,
+            target,
+            state.flatGemTarget
+          )
+        : null
     );
     buildBenchmarkCards();
     renderBenchmarks(profile, displayStage);
@@ -737,6 +814,7 @@
       theme: state.theme,
       view: state.view,
       modGemMode: state.modGemMode,
+      flatGemTarget: state.flatGemTarget,
     };
     try {
       const api = window.pywebview && window.pywebview.api;
@@ -795,6 +873,9 @@
     if (saved.theme === "dark" || saved.theme === "light") state.theme = saved.theme;
     if (["calculator", "benchmarks", "reference"].indexOf(saved.view) !== -1) state.view = saved.view;
     if (["off", "same", "any"].indexOf(saved.modGemMode) !== -1) state.modGemMode = saved.modGemMode;
+    if (saved.flatGemTarget === "auto" || STATS.some(function (stat) { return stat.key === saved.flatGemTarget; })) {
+      state.flatGemTarget = saved.flatGemTarget;
+    }
     syncInputs();
   }
 
@@ -849,6 +930,14 @@
     const btn = event.target.closest("button[data-mod-gem]");
     if (!btn || btn.disabled) return;
     state.modGemMode = btn.dataset.modGem;
+    render();
+    scheduleSave();
+  });
+
+  els.flatGemPlan.addEventListener("change", function (event) {
+    const select = event.target.closest('select[data-role="flat-gem-target"]');
+    if (!select) return;
+    state.flatGemTarget = select.value;
     render();
     scheduleSave();
   });

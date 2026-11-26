@@ -13,7 +13,7 @@ A portable, offline Windows app that calculates Epic Seven gear scores and check
 - Each added roll advances the displayed enhancement level by `+3` and the roll count by one (capped at `+15`). Changing the Enhance buttons rebalances the added rolls to match the selected stage.
 - The substat grid has three columns — **Substat**, **Value + Rolls** (base picker, custom value, `+3` chips, and `base → total`), and **Points** — with the total gear score in the footer. Substats with a base value stay grouped at the top in the order their base values were entered (first entered stays topmost); empty substats sit below them in the default order. Setting or clearing a base value moves its row between the groups automatically.
 
-Main stats and set bonuses are ignored entirely. On **Lv 85 Epic only**, a **Flat stats** control (0–3) marks how many of the gear's substats are flat ATK / HP / DEF; their values are irrelevant, only the count matters. Lv 88 ignores flats. A gear with flat stats cannot use a mod gem.
+Main stats and set bonuses are ignored entirely. On **Lv 85 Epic only**, a **Flat stats** control (0–3) marks how many of the gear's substats are flat ATK / HP / DEF; their values are irrelevant, only the count matters. Lv 88 ignores flats. A gear with flat stats cannot use the base-roll mod gem; at +15 a separate panel recommends modding one flat stat instead.
 
 **Score**
 
@@ -69,7 +69,7 @@ A maximum roll is worth **8 points on Lv 85** and **10 points on Lv 88** for eve
 
 The **Mod gem** control in the reachability panel has three modes: **Off**, **Same stat** (ATK% → ATK%), and **Any stat** (ATK% → any substat not already on the gear). Lv 88 gear ignores the setting.
 
-Gear with one or more flat stats has the mod gem disabled: the buttons are inactive and gem points are zero at every stage.
+Gear with one or more flat stats has the mod gem disabled: the buttons are inactive and gem points are zero at every stage. The flat-stat mod panel below covers that case separately.
 
 A Greater gem can only be used on a substat that is still at **one base roll** — no `+3` roll has landed on it. The sheet tracks this per substat at every stage: if a projected roll lands on the gem source, the calculation switches to another eligible substat, or drops the gem gain to zero if none remain. Remaining rolls in the projection are placed on the other substats so the chosen source stays at one base roll.
 
@@ -80,6 +80,22 @@ best-case score = current score + remaining rolls × max points per roll + gem p
 ```
 
 Gem points = the highest `(new points − old points)` over all eligible sources and allowed targets, floored at zero. The Greater base-roll maximums ("88 or lower") are pct 8, SPD 4, and CD 7 — each worth 8 points at Lv 85. Crit Chance is excluded as a target because its mod value is 1 lower. A same-stat mod keeps the higher of the old and new values; a target already present on the gear is not allowed (except the same stat itself).
+
+### Flat-stat mod at +15 (Lv 85 only)
+
+When a gear is at **+15**, has **at least one flat stat**, and already **meets** the old flat-reduced Bench at +15 (the reachability row reads `Met`), a **Flat-stat mod · +15** panel appears in the reachability card. It tells you which Greater gem conversion closes the remaining gap to the intended score.
+
+Only **one** flat can be modded away, so the remaining `n − 1` flats stay worth zero. The target therefore uses `9 − (n − 1)` rolls instead of the full 9:
+
+```
+target score = (9 − (flat count − 1)) × target per roll
+deficit      = target score − current gear score
+min value    = deficit ÷ weight(target stat)
+```
+
+With the default 6.08 target the goal is **54.72 / 48.64 / 42.56** for one, two, or three flats — exactly the old flat-reduced Bench **+ 8 points** (one Greater max roll). Since the old Bench must already be met, `0 < deficit ≤ 8`.
+
+The target stat is chosen from substats **not already on the gear** (Crit Chance is excluded). **Auto** ranks by score weight — SPD ×2, then CD ×8/7, then pct ×1 — so it needs the smallest value; the dropdown also lets you pick a target manually. The panel shows the minimum value needed, e.g. `≥ 3.04 SPD (Greater 2–4) → +6.08 pts`, using the Greater ranges pct **4–8**, SPD **2–4**, CD **4–7**. Values above the max are flagged as unachievable; values below the min mean the gem will overshoot. The displayed value is rounded up to two decimals so the projected score always reaches the target.
 
 ## Run from source
 

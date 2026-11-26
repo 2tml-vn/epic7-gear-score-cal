@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const calc = require("../web/calc.js");
 
-const { getProfile, rollsAt, totalRolls, computeScore, rollOptions, effectiveStats, countPlusThree, effectiveStage, buildBenchmarkTable, buildReachability, bestGreaterModGain, normalizeFlatCount, resolveFlatAdjustment, substatOverflow, GREATER_MOD_MAX, round2 } = calc;
+const { getProfile, rollsAt, totalRolls, computeScore, rollOptions, effectiveStats, countPlusThree, effectiveStage, buildBenchmarkTable, buildReachability, bestGreaterModGain, flatStatModPlan, normalizeFlatCount, resolveFlatAdjustment, substatOverflow, GREATER_MOD_MAX, GREATER_MOD_RANGE, round2 } = calc;
 
 function benchmarks(profile, perRoll) {
   return buildBenchmarkTable(profile, perRoll).map((row) => round2(row.benchmark));
@@ -388,6 +388,85 @@ test("flat stats disable the mod gem in reachability", () => {
 
   const noFlats = buildReachability(p, 0, 14, true, modGem, undefined, 0);
   assert.equal(noFlats[5].gemPoints, 4);
+});
+
+test("Greater mod ranges match the reference table", () => {
+  assert.deepEqual(GREATER_MOD_RANGE.pct, { min: 4, max: 8 });
+  assert.deepEqual(GREATER_MOD_RANGE.spd, { min: 2, max: 4 });
+  assert.deepEqual(GREATER_MOD_RANGE.cd, { min: 4, max: 7 });
+  assert.equal(GREATER_MOD_RANGE.cc, undefined);
+});
+
+test("flat-stat mod plan only applies at +15 with flats on Lv 85", () => {
+  const stats = Object.assign(blankStats(), { atk: 8, hp: 8 });
+  assert.equal(flatStatModPlan(getProfile(85), 12, 48.64, 1, stats, blankRolls()), null);
+  assert.equal(flatStatModPlan(getProfile(85), 15, 48.64, 0, stats, blankRolls()), null);
+  assert.equal(flatStatModPlan(getProfile(88), 15, 48.64, 1, stats, blankRolls()), null);
+});
+
+test("flat-stat target uses 9 − (n − 1) rolls", () => {
+  const p = getProfile(85);
+  assert.equal(flatStatModPlan(p, 15, 46.72, 1, blankStats(), blankRolls()).target, 54.72);
+  assert.equal(flatStatModPlan(p, 15, 40.64, 2, blankStats(), blankRolls()).target, 48.64);
+  assert.equal(flatStatModPlan(p, 15, 34.56, 3, blankStats(), blankRolls()).target, 42.56);
+  assert.deepEqual(
+    [1, 2, 3].map(function (n) {
+      return flatStatModPlan(p, 15, 0, n, blankStats(), blankRolls()).targetRolls;
+    }),
+    [9, 8, 7]
+  );
+});
+
+test("auto flat-stat mod picks the highest-weight stat and the minimum value needed", () => {
+  const p = getProfile(85);
+  const stats = Object.assign(blankStats(), { atk: 8, hp: 8, def: 8 });
+  const plan = flatStatModPlan(p, 15, 48.64, 1, stats, blankRolls());
+
+  assert.equal(plan.status, "plan");
+  assert.equal(plan.targetKey, "spd");
+  assert.equal(plan.targetLabel, "SPD");
+  assert.equal(round2(plan.deficit), 6.08);
+  assert.equal(round2(plan.minValue), 3.04);
+  assert.equal(plan.displayValue, 3.04);
+  assert.equal(round2(plan.points), 6.08);
+  assert.equal(round2(plan.finalScore), 54.72);
+  assert.equal(plan.auto, true);
+  assert.equal(plan.achievable, true);
+  assert.equal(plan.belowMin, false);
+  assert.deepEqual(plan.candidates.map(function (c) { return c.key; }), ["spd", "cd", "eff", "er"]);
+});
+
+test("manual flat-stat target is respected and invalid choices fall back to auto", () => {
+  const p = getProfile(85);
+  const manual = flatStatModPlan(p, 15, 48.64, 1, blankStats(), blankRolls(), undefined, "cd");
+  assert.equal(manual.targetKey, "cd");
+  assert.equal(round2(manual.minValue), 5.32); // 6.08 ÷ (8/7)
+  assert.equal(manual.auto, false);
+
+  const invalid = flatStatModPlan(p, 15, 48.64, 1, blankStats(), blankRolls(), undefined, "cc");
+  assert.equal(invalid.targetKey, "spd");
+});
+
+test("flat-stat plan reports met and no eligible target", () => {
+  const p = getProfile(85);
+  const met = flatStatModPlan(p, 15, 54.72, 1, blankStats(), blankRolls());
+  assert.equal(met.status, "met");
+  assert.equal(met.target, 54.72);
+
+  const allStats = Object.assign(blankStats(), { atk: 8, hp: 8, def: 8, eff: 8, er: 8, spd: 4, cd: 7 });
+  const none = flatStatModPlan(p, 15, 48.64, 1, allStats, blankRolls());
+  assert.equal(none.status, "no-target");
+});
+
+test("flat-stat plan flags values outside the Greater range", () => {
+  const p = getProfile(85);
+  const tiny = flatStatModPlan(p, 15, 54.70, 1, blankStats(), blankRolls());
+  assert.equal(tiny.belowMin, true); // 0.02 ÷ 2 < SPD min 2
+  assert.equal(tiny.achievable, true);
+
+  const huge = flatStatModPlan(p, 15, 0, 1, blankStats(), blankRolls(), undefined, "spd");
+  assert.equal(round2(huge.minValue), 27.36);
+  assert.equal(huge.achievable, false);
 });
 
 test("substat slot overflow is reported but does not block scoring", () => {
