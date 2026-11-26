@@ -462,8 +462,8 @@ html[data-theme="light"] .icon-sun {
   table-layout: fixed;
 }
 
-.stat-grid col.col-stat { width: 34%; }
-.stat-grid col.col-value { width: 46%; }
+.stat-grid col.col-stat { width: 50%; }
+.stat-grid col.col-value { width: 30%; }
 .stat-grid col.col-points { width: 20%; }
 
 .stat-grid th,
@@ -512,9 +512,9 @@ html[data-theme="light"] .icon-sun {
 .stat-cell {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 6px;
   height: 30px;
-  padding: 0 12px;
+  padding: 0 8px;
 }
 
 .stat-dot {
@@ -531,6 +531,8 @@ html[data-theme="light"] .icon-sun {
 .stat-dot.cd { background: var(--accent); }
 
 .stat-name {
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -585,7 +587,7 @@ html[data-theme="light"] .icon-sun {
 .value-wrap {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   height: 30px;
   padding: 0 8px;
@@ -618,6 +620,10 @@ html[data-theme="light"] .icon-sun {
   font-size: 12px;
   outline: 0;
   cursor: pointer;
+}
+
+.stat-cell .roll-select {
+  flex: 0 0 76px;
 }
 
 .roll-select:focus {

@@ -99,11 +99,11 @@
         '<span class="stat-dot ' + stat.kind + '"></span>' +
         '<span class="stat-name">' + stat.label + "</span>" +
         '<span class="stat-suffix">' + stat.suffix + "</span>" +
-        "</div></td>" +
-        '<td class="value-cell"><div class="value-wrap">' +
         '<span class="base-tag">BASE</span>' +
         '<select class="roll-select base-roll" data-role="base-roll" data-key="' + stat.key +
         '" aria-label="Base value for ' + stat.label + '"></select>' +
+        "</div></td>" +
+        '<td class="value-cell"><div class="value-wrap">' +
         '<input type="number" min="0" step="0.1" inputmode="decimal" placeholder="custom" id="stat-' +
         stat.key +
         '" data-key="' + stat.key + '" aria-label="' + stat.label + stat.suffix + '">' +
